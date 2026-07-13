@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Patient Monitor System</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --accent: #0f172a;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --error: #ef4444;
+            --success: #10b981;
+            --text-main: #334155;
+            --text-light: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER --- */
+        .app-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+            min-height: 60px;
+        }
+
+        .logo-container {
+            height: 45px;
+            width: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .institute-logo {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .header-titles {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .institute-name {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .app-name {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        /* --- LAYOUT --- */
+        .layout-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* --- LEFT COLUMN (FORM) --- */
+        .sidebar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .form-header {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--bg);
+        }
+
+        /* Form Inputs */
+        .input-group {
+            margin-bottom: 5px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        label.required::after {
+            content: " *";
+            color: var(--error);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 8px; /* Slightly padded for mobile touch */
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem; /* Better legibility on mobile */
+            background: #f8fafc;
+            box-sizing: border-box;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .ts-control {
+            border-color: var(--border);
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 10px 8px;
+        }
+
+        /* --- RIGHT COLUMN (CONTROLS + GRAPHS) --- */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        /* COMPACT CONTROL BAR */
+        .control-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .control-group-left,
+        .control-group-right {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Smaller Buttons */
+        button {
+            padding: 10px 16px; /* Larger touch target */
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+        
+        button:active {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-connect { background: var(--primary); color: white; }
+        .btn-disconnect { background: var(--error); color: white; display: none; }
+        .btn-record { background: var(--success); color: white; }
+        .btn-save { background: var(--accent); color: white; }
+
+        /* Compact Timer & Status */
+        .timer-box {
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--accent);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .badge.off { background: #fee2e2; color: #991b1b; }
+        .badge.on { background: #dcfce7; color: #166534; }
+
+        .validation-msg {
+            font-size: 0.85em;
+            color: var(--error);
+            margin-left: 5px;
+            display: none;
+            width: 100%;
+        }
+
+        /* --- GRAPHS --- */
+        .graphs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .graph-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .graph-title {
+            margin: 0 0 10px 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-light);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            height: 180px; /* Slightly taller for mobile legibility */
+            width: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .locked-input {
+            background-color: #e2e8f0;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* --- TOGGLE SLIDER --- */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px; /* Larger for touch */
+            height: 24px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--text-light);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* =========================================
+           MOBILE RESPONSIVE OVERRIDES
+           ========================================= */
+        @media (max-width: 768px) {
+            body {
+                height: auto;
+                overflow-y: auto; /* Allow natural page scrolling */
+            }
+
+            .app-header {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+            }
+
+            .institute-name {
+                font-size: 1rem;
+            }
+
+            .layout-container {
+                grid-template-columns: 1fr; /* Single column */
+                height: auto; /* Remove fixed height */
+                overflow: visible;
+                padding: 10px;
+            }
+
+            .sidebar {
+                max-height: none;
+                overflow: visible;
+            }
+
+            .main-content {
+                overflow: visible;
+            }
+
+            .control-bar {
+                flex-direction: column;
+                align-items: stretch; /* Stretch items full width */
+            }
+
+            .control-group-left, 
+            .control-group-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .control-group-left {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%; /* Full width buttons on mobile */
+                padding: 12px; 
+            }
+
+            .badge {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .toggle-container {
+                width: 100%;
+                justify-content: center;
+                margin: 10px 0;
+            }
+            
+            .timer-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="app-header">
+        <div class="logo-container">
+            <img src="vnit.jpg" alt="Logo" class="institute-logo"
+                onerror="this.src='https://placehold.co/100x100?text=LOGO'">
+        </div>
+        <div class="header-titles">
+            <h1 class="institute-name">Visvesvaraya National Institute of Technology, Nagpur</h1>
+            <h2 class="app-name">Patient Monitor System</h2>
+        </div>
+    </header>
+
+    <div class="layout-container">
+
+        <aside class="sidebar">
+            <h3 class="form-header">📋 Patient Config</h3>
+
+            <div class="input-group">
+                <label class="required">Patient Name</label>
+                <input type="text" id="patientName" class="auto-save" placeholder="Enter Name">
+            </div>
+
+            <div class="input-group">
+                <label class="required">Doctor Name</label>
+                <input type="text" id="doctorName" class="auto-save" placeholder="Dr. Name">
+            </div>
+
+            <div class="input-group">
+                <label class="required">Date</label>
+                <input type="date" id="DOB" class="auto-save">
+            </div>
+
+            <div class="input-group">
+                <label class="required">Age</label>
+                <input type="number" id="age" class="auto-save" placeholder="35">
+            </div>
+
+            <div class="input-group">
+                <label class="required">Sex</label>
+                <select id="sex" class="auto-save">
+                    <option value="" disabled selected>-- Select --</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Symptoms</label>
+                <select id="symptoms" class="auto-save" multiple placeholder="Select Symptoms..."></select>
+            </div>
+
+            <div class="input-group">
+                <label>Observation Notes</label>
+                <textarea id="notes" class="auto-save" rows="3" placeholder="Clinical notes..."></textarea>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <div class="control-bar">
+                <div class="control-group-left">
+                    <button id="btnConnect" class="btn-connect" onclick="connectSerial()" disabled>
+                        <span>🔌</span> Connect
+                    </button>
+                    <button id="btnDisconnect" class="btn-disconnect" onclick="disconnectDevice()">
+                        <span>❌</span> Disconnect
+                    </button>
+                    <span id="statusBadge" class="badge off">DISCONNECTED</span>
+                    <span id="connectMsg" class="validation-msg">⚠ Fill required form fields</span>
+                </div>
+
+                <div class="control-group-right">
+                    <div class="toggle-container">
+                        <span>Raw</span>
+                        <label class="switch">
+                            <input type="checkbox" id="viewToggle" onchange="toggleViewMode()" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Processed</span>
+                    </div>
+                    <span id="recordTimer" class="timer-box">00:00</span>
+                    <button id="btnRecord" class="btn-record" onclick="toggleRecording()" disabled>
+                        <span>⏺</span> Record
+                    </button>
+                    <button id="btnSave" class="btn-save" onclick="downloadJSON()" disabled>
+                        <span>💾</span> Save
+                    </button>
+                </div>
+            </div>
+
+            <div class="graphs-container">
+                <div class="graph-card">
+                    <div class="graph-title"><span>Sensor 1: Vatta</span><span style="color: var(--primary);">■</span>
+                    </div>
+                    <div class="canvas-wrapper"><canvas id="chart1"></canvas></div>
+                </div>
+                <div class="graph-card">
+                    <div class="graph-title"><span>Sensor 2: Pitta</span><span style="color: var(--success);">■</span>
+                    </div>
+                    <div class="canvas-wrapper"><canvas id="chart2"></canvas></div>
+                </div>
+                <div class="graph-card">
+                    <div class="graph-title"><span>Sensor 3: Kapha</span><span style="color: var(--error);">■</span>
+                    </div>
+                    <div class="canvas-wrapper"><canvas id="chart3"></canvas></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Data truncated for brevity in this response, but keep your full array in production
+const myOptions = [
+            'Vaivarnya (वैवर्ण्य )',
+            'moorchchha ( मूर्च्छा)',
+            'jvar(ज्वर)',
+            'kasa(कास)',
+            'hikka(हिक्का)',
+            'svasa(श्वास)',
+            'vairasya (वैरस्य)',
+            'trsha (तृषा)',
+            'pramoh (प्रमोह:)',
+            'chardi(छर्दी)',
+            'kaphotklesh (कफोत्क्लेश)',
+            'ruj(रुज)',
+            'aruci(अरुची)',
+            'hrchchhoony(हृच्छून्य)',
+            'hriday gati badhna(हृदय गति बढना)',
+            'hriday shosh(हृदय शोष)',
+            'hriday bhed (हृदय भेद)',
+            'Hr̥iday stambha (हृदय स्तंभ)',
+            'moh(मोह)',
+            'tam(तम्)',
+            'paritaap hona(परिताप होना)',
+            'Hr̥idaya daha(हृदय दाह)',
+            'bhay(भय)',
+            'santaap(संताप)',
+            'santraas(संत्रास)',
+            'sharir pittata(शरीर पित्तता)',
+            'Hr̥idaya stabdhata(हृदय स्तब्धता)',
+            'hrday gurutv(हृदय गुरुत्व)',
+            'Hr̥daya stimita (हृदय स्तिमित)',
+            'prasek(प्रसेक)',
+            'tandra(तंद्रा)',
+            'tridosh lakshan(त्रिदोष लक्षण)',
+            'Tīvra hr̥daya piḍa(तीव्र हृदय पीडा)',
+            'hrday tod(हृदय तोद)',
+            'hridaya kandu(हृदय कण्डू)',
+            'tivra vankshan ruja (तीव्र वंक्षण रुजा)',
+            'tivra basti ruja (तीव्र बस्ति रुजा)', // FIXED: Added comma here
+            'tivra maindhra ruja (तीव्र मैंढ्र रुजा )',
+            'svalpam muhurmutra tyag (स्वल्पं मुहुर्मूत्र त्याग)',
+            'peet mootratyaag (पीत मूत्रत्याग)',
+            'saaraktan mootratyaag (सारक्तं मूत्रत्याग)',
+            'suroojan mootratyaag (सुरूजं मूत्रत्याग)',
+            'sadaah mootratyaag (सदाह मूत्रत्याग)',
+            'Krchānmuhurmūtraya (कृछान्मुहुर्मूत्रय)',
+            'ling gurutv (लिंग गुरुत्व)',
+            'ling shoth (लिंग शोथ)',
+            'mutram sapicchham (मूत्रं सपिच्छं)',
+            'tridoshaj lakshan (त्रिदोषज लक्षण)',
+            'mutrasya chenmargamupaiti ruddhava (मूत्रस्य चेन्मार्गमुपैती रुद्धवा)',
+            'basti ruja (बस्ति रुजा)',
+            'sevanee shool (सेवनी शूल)',
+            'mehan shool (मेहन शूल)',
+            'Basti  shool (बस्ति शूल)',
+            'Visirṇadharam (विशिर्णधारं)',
+            'Naridanati mendra sa ṭu vEdanarito (मृदनाति मैंढ्र स तू वेदनार्तो )',
+            'muhu:shakrunmunchati (मुहु:शकृन्मुञ्चति)',
+            'Varanvara mūtratyāga (वारंवार मूत्रत्याग)',
+            'mootrayateeh saasrk (मूत्रयतीह सासृक)',
+            'vankshan shool (वंक्षण शूल)',
+            'maindhr shool (मैंढ्र शूल)',
+            'Vr̥ṣaṇātivr̥ttē (वृषणातिवृत्ते)',
+            'krchh mootr tyaag (कृछ मूत्र त्याग)',
+            'tivraarti  mutren sahalpamalpamayati (तीव्रार्ति  मुत्रेण सहाल्पमल्पमायाति)',
+            'Basti ādhmāna (बस्ति आध्मान)',
+            'Basti gauravata (बस्ति गौरवता)'
+            , 'Nitya strīsambhōga vāsanā (नित्य स्त्रीसंभोग वासना) '
+            , 'priyam vashyam striyam na yati ling kadachidyati va yadi(प्रियां वश्याम् स्त्रीयं न याति लिंग कडाचिद्याति वा यदि)'
+            , 'Svasarta (श्वासार्त)'
+            , 'svinn gatra (स्विन्न गात्र)'
+            , 'mlaan shishn  (म्लान शिश्न)'
+            , 'Nirbijaḥ(निर्बिजः)'
+            , 'alp praan (अल्प प्राण)'
+            , 'alp harsh (अल्प हर्ष)'
+            , 'pramadasu bhavennar (प्रमादासु भवेन्नर:)'
+            , 'paandoo varn (पांडू वर्ण:)'
+            , 'Durbala (दुर्बल)'
+            , 'Hrdayaroga (हृदयरोग)'
+            , 'paandoo (पांडू)'
+            , 'tamakashvaas (तमकश्वा)'
+            , 'kaamala (कामला)'
+            , 'shram (श्रम)'
+            , 'vaman (वमन)'
+            , 'atisaar (अतिसार)'
+            , 'udarashool (उदरशूल)'
+            , 'kaas (कास)'
+            , 'jvar (ज्वर)'
+            , 'medhr shoth (मेढ्र शोथ)'
+            , 'medhr shool (मेढ्र शूल)'
+            , 'medhr laalee (मेढ्र लाली)'
+            , 'meidhra sphotaasch tivra jayate lingpak (मेढ्र स्फोटाश्च तीव्र जायते लिंगपाक:)'
+            , 'mansavruddhi (मांसवृद्धी)'
+            , 'meidhre vran kshipra (मेढ्रे व्रण: क्षिप्र)'
+            , 'vrane pulak udak sankash strao shyav aruna Prabha (व्रणे पुलाक उदक संकाश: स्त्राव: श्याव अरुण प्रभ:)'
+            , 'valayi kurute kathin parigrah (वलयी कुरुते कठीण परिग्रह)'
+            , 'jvar (ज्वर)'
+            , 'trushna (तृष्णा)'
+            , 'bhram (भ्रम)'
+            , 'murchchha (मूर्च्छा)'
+            , 'chhardi (छर्दी)'
+            , 'ling vrane rakt strao (लिंग व्रणे रक्त स्त्राव)'
+            , 'ling vrane krushna strao (लिंग व्रणे कृष्ण स्त्राव)'
+            , 'ling vrane nil strao (लिंग व्रणे नील स्त्राव)'
+            , 'ling vrane avil strao (लिंग व्रणे अविल स्त्राव)'
+            , 'ling agninev ch dagdhasya tivro dah savedan (लिंग अग्निनेव च दग्धस्य तिव्रो दाह: सवेदन:)'
+            , 'basti shul (बस्ति शुल)'
+            , 'vrushan shul (वृषण शुल)'
+            , 'seevani shul (सीवनी शुल)'
+            , 'vankshan shul (वंक्षण शुल)'
+            , 'ling vrane picchhil strao (लिंगे व्रणे पिच्छील स्त्राव)'
+            , 'ling vrane pandu varni strao (लिंगे व्रणे पांडू वर्णी स्त्राव)'
+            , 'ling shvayathu jayate mand stimito alpastrao (लिंगे श्वयथु: जायते मंद: स्तिमितो अल्पस्त्राव:)'
+            , 'chirat ch pakam vrajati shigram va (चिरात् च पाकं व्रजति शीघ्रम् वा)'
+            , 'krimi (कृमि)'
+            , 'clidati (क्लिदति)'
+            , 'puti gandhi (पूति गंधि)'
+            , 'mani vishiṟayate (मणि विशीऱ्यते)'
+            , 'meidhra vishiṟayate (मेढ्र विशीऱ्यते)'
+            , 'musk vishiṟayate (मुष्क विशीऱ्यते)'
+            , 'dhatu kshinata (धातू क्षीणता)'
+            , 'durbal (दुर्बल)'
+            , 'vivarna (विवर्ण)'
+            , 'din (दीन)'
+            , 'kshipram vyadhimatha shnute (क्षिप्रम् व्याधिमथा श्नूते)'
+            , 'kshaya (क्षय)'
+            , 'mrutyu (मृत्यू)'
+            , 'laghuta pun: (लघुता पुन:)'
+            , 'nigraho mutra (निग्रहो मूत्र)'
+            , 'nigraho varchaso (निग्रहो वर्चसो)'
+            , 'bradhrrog (ब्रध्नरोग)'
+            , 'hrudrarog (हृद्ररोग)'
+            , 'gulm (गुल्म)'
+            , 'arsh (अर्श)'
+            , 'parshvashul (पार्श्वशूल)'
+            , 'gatrasphuran (गात्रस्फुरण)'
+            , 'bhajjanam (भज्जनम)'
+            , 'sphutantivasya sandhaya(स्फुटन्तीवास्य संधय:)ग्रहो विण'
+            , 'graho mutra (ग्रहो मूत्र)'
+            , 'graho vatanam (ग्रहो वातानां)'
+            , 'shul (शूल)'
+            , 'aadhman (आध्मान)'
+            , 'sharkara (शर्करा)'
+            , 'ashmari (अश्मरी)'
+            , 'jangho rogshosho (जंघो रोगशोषो)'
+            , 'uru rogshosho (उरु रोगशोषो)'
+            , 'trik rogshosho (त्रिक रोगशोषो)'
+            , 'pat rogshosho (पात रोगशोषो)'
+            , 'prushth rogshosho (पृष्ठ रोगशोषो)'
+            , 'har̥̄da ruk (हॄद रुक)'
+            , 'nabhiruk (नाभिरुक)'
+            , 'parshvaruk (पार्श्वरुक)'
+            , 'udararuk (उदररुक)'
+            , 'trushna (तृष्णा)'
+            , 'uddgar (उद्द्गार)'
+            , 'visuchika: (विसूचिका:)'
+            , 'kas (कास)'
+            , 'kanthasyashoshasch (कंठास्यशोषश्च)'
+            , 'shvas (श्वास)'
+            , 'antrakujan (आन्त्रकूजन)'
+            , 'shul (शूल)'
+            , 'aatop (आटोप)'
+            , 'mutrakrichra (मूत्रकृच्छ्र)'
+            , 'purishatvam (पुरिषत्वं)'
+            , 'anaah (आनाह)'
+            , 'trikavedanam (त्रिकवेदनम)'
+            , 'tvagruruksha (त्वग्रुरुक्षा)'
+            , 'tvaga sphutita (त्वग स्फुटिता)'
+            , 'tvaga supta (त्वग सुप्ता)'
+            , 'tvaga krusha (त्वग कृशा)'
+            , 'tvaga krushna (त्वग कृष्णा)'
+            , 'ch tudyate (च तुद्यते)'
+            , 'aatanyate (आतन्यते)'
+            , 'saraga (सरागा)'
+            , 'parva ruk (पर्व रुक)'
+            , 'sasantap (ससन्ताप)'
+            , 'vaivarnya (वैवर्ण्य)'
+            , 'krushata (कृशता)'
+            , 'aruchi (अरुचि)'
+            , 'charunshi (चारुंषी)'
+            , 'gatre bhuktasya stambha (गात्रे भुक्तस्य स्तम्भ)'
+            , 'gurvang (गुर्वंङ्ग)'
+            , 'dandamushtihatam (दण्डमुष्टिहतं)'
+            , 'saruk (सरुक)'
+            , 'shramitamatyarth (श्रमितमत्यर्थ)'
+            , 'bhedoasthiparvanam (भेदोअस्थिपर्वणां)'
+            , 'sandhishulam (सन्धिशूलं)'
+            , 'mansabalakshaya: (मांसबलक्षय:)'
+            , 'asvapn (अस्वप्न)'
+            , 'santata ruk (सन्तता रुक)'
+            , 'badhnati shukram (बध्नाति शुक्रं)'
+            , 'badhnati garbhamathapi (बध्नाति गर्भमथापि)'
+            , 'vikruti janayechapi shukrasth: (विकृति जनयेच्चापि शुक्रस्थ:)'
+            , 'bahyayam (बाह्यायाम)'
+            , 'aabhyantarayam (आभ्यंतरायाम)'
+            , 'khalli (खल्ली)'
+            , 'kubj (कुब्ज)'
+            , 'sarvangarog (सर्वाङ्गरोग)'
+            , 'ekangarog (एकाङ्गरोग)'
+            , 'sharir mandaruk (शरीर मन्दरुक)'
+            , 'shopham (शोफं)'
+            , 'shushyati (शुष्यति)'
+            , 'spandate (स्पन्दते)'
+            , 'suptaastanyavayo (सुप्तास्तन्यवयो)'
+            , 'sira vate (सिरा वाते)'
+            , 'siragate (सिरागते)'
+            , 'sphikpurva (स्फिक्पूर्वा)'
+            , 'kateeprushthorujanujanghapadam kramat (कटीपृष्ठोरुजानुजंघापदं क्रमात)'
+            , 'stambharaktodai (स्तंभरक्तोदै)'
+            , 'gruhaanti (गृहांति)'
+            , 'spandante muhu: (स्पंदंते मुहु:)'
+            , 'tandra (तंद्रा)'
+            , 'gourav (गौरव)'
+            , 'arochak (अरोचक)'
+            , 'chapavannamyamanasya (चापवन्नाम्यमानस्य)'
+            , 'prushthato (पृष्ठतो)'
+            , 'niyate shir (नियते शिर:)'
+            , 'ura utikshipyate (उर उतिक्षिप्यते)'
+            , 'manya stabdha (मन्या स्तब्धा)'
+            , 'grivaavamrudyate (ग्रीवावमृद्यते)'
+            , 'dantaanam dashanam (दंतानां दशनं)'
+            , 'jubbha (जृम्भा)'
+            , 'lalastrao (लालास्त्राव)'
+            , 'vaggrah: (वाग्ग्रह:)'
+            , 'jatavego nihanatyesh (जातवेगो निहनत्येष)'
+            , 'vaikalyam va prayachati (वैकल्यं वा प्रयच्छति)'
+            , 'fenil shukra (फेनिल शुक्र)'
+            , 'tanu shukra (तनु शुक्र)'
+            , 'ruksh shukra (रुक्ष शुक्र)'
+            , 'krichren alp shukra (कृच्छ्रेण अल्प शुक्र)'
+            , 'garbhasthapan asamarth (गर्भस्थापन असमर्थ)'
+            , 'nil shukra (नील शुक्र)'
+            , 'pit shukra (पीत शुक्र)'
+            , 'ati ushna shukra (अति उष्ण शुक्र)'
+            , 'puti gandhi shukra (पूति गंधी शुक्र)'
+            , 'dah ling viniryati shukra (दाह लिंग विनिर्याति शुक्र)'
+            , 'baddh shukra marg (बद्ध शुक्र मार्ग)'
+            , 'ati picchhil shukra (अति पिच्छील शुक्र)'
+            , 'raktamishrit shukra visarjan (रक्तमिश्रित शुक्र विसर्जन)'
+            , 'baddh shukra marg (बद्ध शुक्र मार्ग)'
+            , 'krichren yati shukra (कृच्छ्रेण याति शुक्र)'
+            , 'grathit shukra (ग्रथित शुक्र)'
+            , 'yada bahum padam ch janum ch tasmin sankochayatyardhe karoti ch (यदा बाहुं पादं च जानूं च तस्मिन संकोचयत्यर्धे करोति च)'
+            , 'vakrikaroti nasaastatha (वक्रीकरोती नासास्तथा)'
+            , 'vakrikaroti bhrustatha (वक्रीकरोती भ्रूस्तथा)'
+            , 'vakrikaroti lalatastatha (वक्रीकरोती ललाटस्तथा)'
+            , 'vakrikaroti akshistatha (वक्रीकरोती अक्षीस्तथा)'
+            , 'vakrikaroti hanustatha (वक्रीकरोती हनुस्तथा)'
+            , 'tato vakra vrajatyasye bhojanam (ततो वक्र व्रजत्यास्ये भोजनं)'
+            , 'vakranasikam (वक्रनासिकं)'
+            , 'stabdham netram kathayat: (स्तब्धम नेत्रं कथयत:)'
+            , 'kshavathusch nigruhyate (क्षवथुश्च निगृह्यते)'
+            , 'dina jihma samutkshapta kala sajjati chasya vak (दीना जिह्मा समुत्क्षप्ता कला सज्जति चास्य वाक)'
+            , 'dantaaschalanti (दन्ताश्चलन्ति)'
+            , 'badhyate shravanom (बाध्यते श्रवणों)'
+            , 'bhidyate svar: (भिद्यते स्वर:)'
+            , 'pad ruk (पाद रुक)'
+            , 'hast ruk (हस्त रुक)'
+            , 'akshi ruk (अक्षि रुक)'
+            , 'janghom ruk (जंघों रुक)'
+            , 'shankh ruk (शंख रुक)'
+            , 'shravan ruk (श्रवण रुक)'
+            , 'gandaruk (गण्डरुक)'
+            , 'ardhe tasminmukhardhe (अर्धे तस्मिन्मुखार्धे)'
+            , 'yoni tod (योनि तोद)'
+            , 'stambha (स्तंभ)'
+            , 'pipilikasripti (पिपिलीकासृप्ति)'
+            , 'karkashatam (कर्कशतां)'
+            , 'supti (सुप्ति)'
+            , 'aayas (आयास)'
+            , 'sashabd (सशब्द आर्तव)'
+            , 'savedana (सवेदना आर्तव)'
+            , 'saphen (सफेन आर्तव)'
+            , 'tanu (तनु आर्तव)'
+            , 'ruksh (रुक्ष आर्तव)'
+            , 'yoni dah (योनि दाह)'
+            , 'yoni pak (योनि पाक)', 'jvar (ज्वर)', 'ushnata (उष्णता)', 'nil aartav (नील आर्तव)', 'pit aartav (पीत आर्तव)', 'sit aartav (सीत आर्तव)', 'ushna yonistrao (उष्ण योनिस्त्राव)', 'kunap yonistrao (कुणप योनिस्त्राव)', 'yonistrao (योनिकंडू)', 'yonikandu (योनिकंडू)', 'yoni picchhilam (योनि पिच्छीलां)', 'yoni shaitya (योनि शैत्य)', 'yoni alp vedana (योनि अल्प वेदना)', 'pandu aartav (पांडू आर्तव)', 'picchhil (पिच्छील आर्तव)', 'pandu sharir (पांडू शरीर)', 'yoni dah (योनि दाह)', 'yoni shul (योनि शूल)', 'shvet yonistrao (श्वेत योनिस्त्राव)', 'picchhil yonistrao (पिच्छील योनि स्त्राव)', 'ati pravartate (अति प्रवर्तते योन्याम् लब्धे गर्भे आपि सासृजा)', 'garbhe (अति प्रवर्तते योन्याम् लब्धे गर्भे आपि सासृजा)', 'aapi (अति प्रवर्तते योन्याम् लब्धे गर्भे आपि सासृजा)', 'saashuja (अति प्रवर्तते योन्याम् लब्धे गर्भे आपि सासृजा)', 'asrak (असृक)', 'karshya (कार्श्य)', 'vaivarnya (वैवर्ण्य)', 'bhrusham (भृशं)', 'kandu (कंडू)', 'ati narakankshini (अति नरकांक्षीणि)', 'shopha (शोफ)', 'supti ruk (सुप्ति)', 'prushth ruja (पृष्ठ रुजा)', 'kati ruja (कटी रुजा)', 'uru ruja (उरू रुजा)', 'vankshan ruja (वंक्षण रुजा)', 'pandu yonistrao (पांडू योनिस्त्राव)', 'tod (तोद)', 'shvet yonistrao (श्वेत योनिस्त्राव)', 'kapha (कफ वातज रोग)', 'vat (कफ वातज रोग)', 'yonishoth (योनि शोथ)', 'sparshasahatva (स्पर्शासहत्व)', 'nil asrak yonistrao (नील असृक योनिस्त्राव)', 'pit asrak yonistrao (पीत असृक योनिस्त्राव)', 'shroni shul (श्रोणि शुल)', 'vankshan shul (वांक्षण शुल)', 'prushth shul (पृष्ठ शुल)', 'jvar (ज्वर)'
+            , 'yoni shul (योनि शूल)'
+            , 'raj: krichren udavruttam vimunchati (रज: कृच्छ्रेण उदावृत्तम् विमुंचती)'
+            , 'aartav vimukte tantkshanam labhate sukham (आर्तव विमुक्ते तंत्क्षणं लभते सुखं)'
+            , 'yoni karnika (योनि कर्णिका)'
+            , 'utpatti garbham jatam jatam vinashayet (उत्पत्ती गर्भम् जातं जातं विनाशयेत्)'
+            , 'vakrayati ananam (वक्रयति अननं)'
+            , 'yonya: (योन्या:)'
+            , 'astthi (अस्थि)'
+            , 'anil artibhi: (अनिल अर्तिभि:)'
+            , 'yoni: mans (योन्या: मांस)'
+            , 'anil artibhi: (अनिल अर्तिभि:)'
+            , 'mathun ashakta (मैथुन अशक्ता)'
+            , 'garbha sthaya striyam (गर्भ स्थाया स्त्रियां)'
+            , 'anu dvaram (अणु द्वारां)'
+            , 'mal sagang (मल सग्ङ)'
+            , 'mutra sagang (मूत्र सग्ङ)'
+            , 'yoneemukh shosh (योनीमुख शोष)'
+            , 'shad-sapt ratradva (षड-सप्त रात्राद्वा)'
+            , 'shukram (शुक्रम्)'
+            , 'garbhashayam gatam (गर्भाशयं गतं|)'
+            , 'sarujam niroojam (सरुजम् निरूजम्)'
+            , 'sravet (स्रवेत)'
+            , 'garbhasth kanya (गर्भस्थ कन्या)'
+            , 'garbhashaya nash (गर्भाशय नाश)'
+            , 'nar dveshi (नर द्वेषी)'
+            , 'astani (अस्तनी)'
+            , 'garbhashaya vishtambha (गर्भाशय विष्टम्भ)'
+            , 'yoneemukh vishtambha (योनीमुख विष्टम्भ)'
+            , 'asamvrut mukhi yoni (असंवृत मुखी योनि)'
+            , 'yoni shul (योनि शूल)'
+            , 'ruksh yonistrao (रुक्ष योनिस्त्राव)'
+            , 'fen yonistrao (फेन योनिस्त्राव)'
+            , 'yoneemukh mansotsanna (योनीमुख मांसोत्सन्ना)'
+            , 'parva shul (पर्व शुल)'
+            , 'vankshan ruja (वंक्षण रुजा)'
+            , 'alpastu rago (अल्पस्तु रागो)'
+            , 'anupadehwanshrch (अनुपदेहवांश्र्च)'
+            , 'satod (सतोद)'
+            , 'bhed (भेद)'
+            , 'sadaho (सदाहो)'
+            , 'atiruj: (अतिरुज:)'
+            , 'sarag: (सराग:)'
+            , 'pitopadeh: (पितोपदेह:)'
+            , 'subhrushoshnavahi (सुभृशोष्णवाही)'
+            , 'shuklopadeham (शुक्लोपदेहं)'
+            , 'bahupichilashru (बहुपिच्छिलाश्रू)'
+            , 'netra guruta (नेत्र गुरुता)'
+            , 'sakandu: (सकण्डु:)'
+            , 'sarvani rupani (सर्वानी रुपाणी)'
+            , 'nad (नाद)'
+            , 'atiruk (अतिरुक)'
+            , 'karnamalasya shosh: (कर्णमलस्य शोष:)'
+            , 'stravastanushrch (स्त्रावस्तनुश्र्च)'
+            , 'ashravanam (अश्रवणं)'
+            , 'shopha: (शोफ:)'
+            , 'sarago (सरागो)'
+            , 'daranam (दरणं)'
+            , 'vidah: (विदाह:)'
+            , 'sapitaputishravanam (सपितपुतीश्रवणं)'
+            , 'vaishrootya (वैश्रूत्य)'
+            , 'kandu (कण्डु)'
+            , 'sthir shopha (स्थिर शोफ)'
+            , 'shuklasnigdhastruti: shleshm (शुक्लस्निग्धस्त्रुती: श्लेष्म)'
+            , 'alparuk (अल्परुक)'
+            , 'sarvanni rupani (सर्वांनी रूपाणी)'
+            , 'stravashrch tatradhikadoshavarna: (स्त्रावश्र्च तत्राधीकदोषवर्ण:)'
+            , 'sansprushya marmanyanilastu murdhni vishvakpathasth: (संस्पृश्य मर्माण्यनिलस्तू मुर्ध्नि विष्वक्पथस्थ:)'
+            , 'kruddh: sa sanshoshya kapham tu nasashrungaatakaghranavishoshanam ch (क्रुद्ध: स संशोष्य कफं तु नासाशृंगाटकघ्राणविशोषणं च)'
+            , 'uchvasamarge tu kapha: savato rundhyat (उच्छ्वासमार्गे तू कफ: सवातो रुंध्यात्)'
+            , 'sapak: (सपाक:)'
+            , 'nasa shvayathum (नासा श्वयथुं)'
+            , 'ghrane tathocchhavasgatim nirudhya mansastradoshaadpi (घ्राणे तथोच्छवासगतिं निरुध्य मांसास्त्रदोषादपी)'
+            , 'ghranat stravedva pittaaktamastram (घ्राणात् स्त्रवेद्वा पित्ताक्तमस्त्रं)'
+            , 'shravana pittaaktamastram (श्रवणा पित्ताक्तमस्त्रं)'
+            , 'mukhaadva pittaaktamastram (मुखाद्वा पित्ताक्तमस्त्रं)'
+            , 'charunshi sapakavanti (चारुंषि सपाकवंती)'
+            , 'dah (दाह)'
+            , 'pinas (पिनस)'
+            , 'pratishyay (प्रतिश्याय)'
+            , 'manyastambha (मान्यस्तंभ)'
+            , 'shirashul (शिरशूल)'
+            , 'ardit (अर्दित)'
+            , 'ardhavabhedak (अर्धावभेदक)'
+            , 'kanth purna pratiti (कंठ पूर्ण प्रतीती)'
+            , 'mukh purna pratit (मुख पूर्ण प्रतीत)'
+            , 'tod (तोद)'
+            , 'kujan (कूजन)'
+            , 'vayu avarodh (वायू अवरोध)'
+            , 'vataj vikar (वातज विकार)'
+            , 'kandu (कंडू)'
+            , 'koth (कोठ)'
+            , 'aruchi (अरुची)'
+            , 'shoth (शोथ)'
+            , 'pandu (पांडू)'
+            , 'jvar (ज्वर)'
+            , 'kusth (कुष्ठ)'
+            , 'visarp (विसर्प)'
+            , 'mutrashaya pida (मूत्राशय पीडा)'
+            , 'gud pida (गुद पीडा)'
+            , 'muskashoth pida (मुष्कशोथ पीडा)'
+            , 'mutravinigrah (मूत्रविनिग्रह)'
+            , 'shukrashmari (शुक्राश्मरी)'
+            , 'shukrasravan (शुक्रस्रवण)'
+            , 'angamard (अंगमर्द)'
+            , 'tandra (तंद्रा)'
+            , 'aruchi (अरुची)'
+            , 'shram (श्रम)'
+            , 'kasharya (काशर्य)'
+            , 'kanth shosh (कंठ शोष)'
+            , 'mukh shosh (मुख शोष)'
+            , 'hridavyatha (हृदव्यथा)'
+            , 'badhirya (बाधिर्य)'
+            , 'hridarog (हृदरोग)'
+            , 'murchchha (मूर्च्छा)'
+            , 'gulm (गुल्म)'
+            , 'jubbha (जृम्भा)'
+            , 'angamard (अंगमर्द)'
+            , 'tandra (तंद्रा)'
+            , 'akshi jadta (अक्षि जडता)'
+            , 'shir jadta (शिर जडता)'
+            , 'hridaya rug (हृदय रुग)'
+            , 'basti rug (बस्ती रुग)'
+            , 'kukshi rug (कुक्षि रुग)'
+            , 'udar rug (उदर रुग)'
+            , 'prushth rug (पृष्ठ रुग)'
+            , 'parshva rug (पार्श्व रुग)'
+            , 'aadhman (आध्मान)'
+            , 'hrullas (हृल्लास)'
+            , 'parikartika (परिकार्तिका)'
+            , 'gud tod (गुद तोद)'
+            , 'avipak (अविपाक)'
+            , 'basti shoth (बस्ति शोथ)'
+            , 'varcho apravrutti (वर्चो अप्रवृत्ती)'
+            , 'jathare ch gandaan (जठरे च गण्डान)'
+            , 'urdhvasch vayurvihato (ऊर्ध्वश्च वायुर्विहतो)'
+            , 'kricchhen vin pravrutti (कृच्छेण विण प्रवृत्ती)'
+            , 'shusk vin pravrutti (शुष्क विण प्रवृत्ती)'
+            , 'khar sharir (खर शरीर)'
+            , 'ruksh sharir (रुक्ष शरीर)'
+            , 'shaitya (शैत्य)'
+            , 'apanavayu apravrutti (अपानवायू अप्रवृत्ती)'
+            , 'mutra apravrutti (मूत्र अप्रवृत्ती)'
+            , 'purish apravrutti (पुरिष अप्रवृत्ती)'
+            , 'aadhman (आध्मान)'
+            , 'clam (क्लम)'
+
+            , 'daruna pida (दारुण पीडा)'
+            , 'tod (तोद)'
+            , 'aatop (आटोप)'
+            , 'shul (शूल)'
+            , 'parikartika (परिकार्तिका)'
+            , 'purish sang (पुरिष संग)'
+            , 'urdhvavat (उर्ध्ववात)'
+            , 'basti shul (बस्ति शूल)'
+            , 'upasth shul (उपस्थ शूल)'
+            , 'mutrakruchha (मूत्रकृछ)'
+            , 'shir shul (शिर शूल)'
+            , 'deh vinam (देह विनाम)'
+            , 'vankshan tanaav (वंक्षण तणाव)'
+            , 'manyastambha (मान्यस्तंभ)'
+            , 'grivastambha (ग्रीवास्तंभ)'
+            , 'shir rog (शिर रोग)'
+            , 'nasa rog (नासा रोग)'
+            , 'netra rog (नेत्र रोग)'
+            , 'mukh rog (मुख रोग)'
+            , 'karna rog (कर्ण रोग)'
+            , 'shirogaurav (शिरोगौरव)'
+            , 'netra rog (नेत्र रोग)'
+            , 'parihrushtadant: (परीहृष्टदंत:)'
+            , 'kashayavaktrashrch (कषायवक्त्रश्र्च)'
+            , 'katvaktram (कट्वक्त्रं)'
+            , 'amlavaktram (अम्लवक्त्रं)'
+            , 'virasamvaktram (विरसंवक्त्रं)'
+            , 'ushnamvaktram (उष्णंवक्त्रं)'
+            , 'putivaktram (पुतीवक्त्रं)'
+            , 'lavanam ch vaktram (लवणं च वक्त्रं)'
+            , 'madhurya (माधुर्य)'
+            , 'pachilya (पैच्छिल्य)'
+            , 'gurutva (गुरुत्व)'
+            , 'shaitya (शैत्य)'
+            , 'vibaddh (विबद्ध)'
+            , 'sambaddhayutam kaphen (संबद्धयुतं कफेन)'
+            , 'anaikarasam bhavettu (अनैकरसं भवेत्तू)'
+            , 'svabhavikam vaktramatharoochisch (स्वाभाविकं वक्त्रमथारूचिश्च)'
+            , 'kandu (कण्डू)'
+            , 'dah (दाह)'
+            , 'rug (रुग)'
+            , 'tod (तोद)'
+            , 'aayam (आयाम)'
+            , 'shayav tvaga (शयाव त्वग)'
+            , 'rakt varni tvaga (रक्त वर्णी त्वग)'
+            , 'tamra varni tvaga (ताम्र वर्णी त्वग)'
+            , 'sphuran (स्फुरण)'
+            , 'shvayathu (श्वयथु)'
+            , 'stabdhata (स्तब्धता)'
+            , 'kathinata (काठीणता)'
+            , 'pida (पीडा)'
+            , 'shyav tvacha (श्याव त्वचा)'
+            , 'tamra tvacha (ताम्र त्वचा)'
+            , 'dah (दाह)'
+            , 'tod (तोद)'
+            , 'sphuran (स्फुरण)'
+            , 'pak (पाक)'
+            , 'rug (रुग)'
+            , 'dah (दाह)'
+            , 'chhinn vat vedana (छिन्न वत वेदना)'
+            , 'vakra sandhi (वक्र संधी)'
+            , 'khanjatva (खंजत्व)'
+            , 'pangutvam (पङगुत्वं)'
+            , 'sira aayam (सिरा आयाम)'
+            , 'shul (शूल)'
+            , 'sphuran (स्फुरण)'
+            , 'tod (तोद)'
+            , 'krushna varni shoth (कृष्ण वर्णी शोथ)'
+            , 'shoth rukshata (शोथ रुक्षता)'
+            , 'shoth shyavata (शोथ श्यावता)'
+            , 'shoth vruddhi (शोथ वृद्धि)'
+            , 'shoth haani (शोथ हानि)'
+            , 'dhamanya sankoch (धमन्य संकोच)'
+            , 'anguli sankoch (अङगुलि संकोच)'
+            , 'sandhi sankoch (संधी संकोच)'
+            , 'ang grah (अंग ग्रह)'
+            , 'ang ruk (अंग रुक)'
+            , 'ang kunchan (अंग कुंचन)'
+            , 'ang stambhan (अंग स्तंभन)'
+            , 'shit dvesh (शीत द्वेष)'
+            , 'vidah (विदाह)'
+            , 'vedana (वेदना)'
+            , 'murchchha (मूर्च्छा)'
+            , 'sved (स्वेद)'
+            , 'trushna (तृष्णा)'
+            , 'mad (मद)'
+            , 'bhram (भ्रम)'
+            , 'rag: (राग:)'
+            , 'pak (पाक)'
+            , 'bhed (भेद)'
+            , 'shosh (शोष)'
+            , 'staimityam (स्तैमित्यं)'
+            , 'gouravata (गौरवता)'
+            , 'snigdhata (स्निग्धता)'
+            , 'supti (सुप्ती)'
+            , 'mand vedana (मंद वेदना)'
+            , 'shosh (शोष)'
+            , 'karkashya (कार्कश्य)'
+            , 'roukshyani (रौक्ष्याणी)'
+            , 'chala rujasch (चला रुजश्च)'
+            , 'krushnaarunam (कृष्णारुणं)'
+            , 'nispatanam sashitam (निष्पतनं सशीतं)'
+            , 'prastransan (प्रस्त्रंसन)'
+            , 'spandan (स्पंदन)'
+            , 'tod (तोद)'
+            , 'bheda: (भेदा:)'
+            , 'trushna (तृष्णा)'
+            , 'jvar (ज्वर)'
+            , 'sphotak (स्फोटक)'
+            , 'taludah (तालूदाह)'
+            , 'dhumayanam (धुमायनं)'
+            , 'chapyavadirnata (चाप्यवदिर्णता)'
+            , 'samurchchha (समुर्च्छा)'
+            , 'vividha roojasch (विविधा रूजश्च)'
+            , 'varnasch shuklaarunavarnavarjya: (वर्णाश्च शुक्लअरुणवर्णवर्ज्या:)'
+            , 'kandu (कण्डु)'
+            , 'gurutvam (गुरुत्वं)'
+            , 'sit (सित)'
+            , 'vijjalatvam (विज्जलत्वं)'
+            , 'sneho (स्नेहो)'
+            , 'aruchi (अरुची)'
+            , 'jadya (जाड्य)'
+            , 'kaphaprasekau (कफप्रसेकौ)'
+            , 'utkalesh (उत्कलेश)'
+            , 'mandanalta (मंदानलता)'
+            , 'tandra (तंद्रा)'
+            , 'rujashrch manda: (रुजश्र्च मंदा:)'
+            , 'kaphavaktroroge (कफवक्त्रोरोगे)'
+            , 'sarvani rupani (सर्वाणी रुपाणी)'
+            , 'mukh shosh (मुख शोष)'
+            , 'kasht vat pravrutti (कष्ट वत प्रवृत्ती)'
+            , 'prabal veg (प्रबल वेग)'
+            , 'fen yukt (फेन युक्त)'
+            , 'krushna varni (कृष्ण वर्णी)'
+            , 'shir vedana (शिर वेदना)'
+            , 'alp matra (अल्प मात्रा)'
+            , 'vicchhinn chhardi (विच्छिन्न छर्दी)'
+            , 'tanu chhardi (तनु छर्दी)'
+            , 'kashay rasatmak chhardi (कषाय रसात्मक छर्दी)'
+            , 'hridaya pida (हृदय पीडा)'
+            , 'parshva pida (पार्श्व पीडा)'
+            , 'nabhi vedana (नाभि वेदना)'
+            , 'kas (कास)'
+            , 'svarabhed (स्वरभेद)'
+            , 'ang tod (अंग तोद)'
+            , 'uch shabdavat udgar (उच्च शब्दवत उदगार)'
+            , 'murchchha (मूर्च्छा)'
+            , 'pipas (पिपास)'
+            , 'mukh shosh (मुख शोष)'
+            , 'shir santap (शिर संताप)'
+            , 'talu santap (तालु संताप)'
+            , 'akshi santap (अक्षि संताप)'
+            , 'bhram (भ्रम)'
+            , 'pit varni chhardi (पीत वर्णी छर्दी)'
+            , 'harit varni chhardi (हरित वर्णी छर्दी)'
+            , 'tiktarasatmak chhardi (तिक्तरसात्मक छर्दी)'
+            , 'dhumra varni chhardi (धुम्र वर्णी छर्दी)'
+            , 'sadah chhardi (सदाह छर्दी)'
+            , 'tandra (तन्द्रा)'
+            , 'aasya madhurya (आस्य माधुर्य)'
+            , 'kapha prasek (कफ प्रसेक)'
+            , 'santosh (संतोष)'
+            , 'nidra (निद्रा)'
+            , 'aruchi (अरुची)'
+            , 'gouravata (गौरवता)'
+            , 'snigdh chhardi (स्निग्ध छर्दी)'
+            , 'ghan chhardi (घन छर्दी)'
+            , 'madhur chhardi (मधुर छर्दी)'
+            , 'vishuddh kapha yukt chhardi (विशुद्ध कफ युक्त छर्दी)'
+            , 'lomaharsh (लोमहर्ष)'
+            , 'alp ruj (अल्प रुज)'
+            , 'udar shul (उदर शूल)'
+            , 'avipak (अविपाक)'
+            , 'aruchi (अरुची)'
+            , 'sadah chhardi (सदाह छर्दी)'
+            , 'trushna (तृष्णा)'
+            , 'shvas (श्वास)'
+            , 'moh (मोह)'
+            , 'amla chhardi (अम्ल छर्दी)'
+            , 'lavan rasatmak chhardi (लवण रसात्मक छर्दी)'
+            , 'nil chhardi (निल छर्दी)'
+            , 'sandra chhardi (सांद्र छर्दी)'
+            , 'ushna rakt yukt chhardi (उष्ण रक्त युक्त छर्दी)'
+            , 'vinavarni chhardi (विणवर्णी छर्दी)'
+            , 'mutra varni chhardi (मूत्र वर्णी छर्दी)'
+            , 'vin gandhi chhardi (विण गंधि छर्दी)'
+            , 'mutra gandhi chhardi (मूत्र गंधि छर्दी)'
+            , 'trushna (तृष्णा)'
+            , 'shvas (श्वास)'
+            , 'hikka (हिक्का)'
+            , 'bhrushartishulam (निभृशार्तीशुलम्)'
+            , 'sphuratih (स्फुरतीह)'
+            , 'sadaharti (सदाहार्ती)'
+            , 'guru syat (गुरु स्यात्)'
+            , 'sarvaistridosham (सर्वैस्त्रिदोषं)'
+            , 'kandu (कंडु)'
+            , 'dourgandhya (दौर्गंध्य)'
+            , 'todarti (तोदार्ती)'
+            , 'vijjal maamam (विज्जल मामं)'
+            , 'viplutam (विप्लुतम)'
+            , 'avasadi (अवसादी)'
+            , 'ruksh (रुक्ष)'
+            , 'drav (द्रव)'
+            , 'aamagandhi (आमगंधी)'
+            , 'shabdamashabdam va (शब्दमशब्दं वा)'
+            , 'vibaddhamutravatamatisaryate purisham (विबद्धमुत्रवातमतीसार्यते पुरिषम्)'
+            , 'vayushchaant: koshthe sashabdashul vibaddh (वायूश्च्आन्त: कोष्ठे सशब्दशुल विबद्ध)'
+            , 'vayustiryak charati (वायुस्तिर्यक चरती)'
+            , 'vibaddham (विबद्धम)'
+            , 'alpapalpam sashabd (अल्पापल्पं सशब्द)'
+            , 'sashul mal (सशूल मल)'
+            , 'saphen (सफेन)'
+            , 'picha (पिच्छा)'
+            , 'parikartikam (परीकर्तिकं)'
+            , 'hrushtaromaa (हृष्टरोमा)'
+            , 'vini: shvasan (विनी: श्वसञ्)'
+            , 'shuskamukh: (शुष्कमुख:)'
+            , 'kati shul (कटी शूल)'
+            , 'uru shul (उरू शूल)'
+            , 'trikashul (त्रिकशूल)'
+            , 'janu shul (जानू शूल)'
+            , 'prushth shul (पृष्ठ शूल)'
+            , 'parshva shul (पार्श्व शूल)'
+            , 'bhrashtagud (भ्रष्टगुद)'
+            , 'muhurmuhurvigrathitamupaveshyate purish (मुहुर्मुहुर्विग्रथितमुपवेश्यते पुरिष)'
+            , 'haridram purisham (हारिद्रं पूरिषं)'
+            , 'haritam purisham (हरीतं पुरिषं)'
+            , 'nilam purisham (निलं पुरिषं)'
+            , 'krushnam purisham (कृष्णं पुरिषं)'
+            , 'raktapittopahitam (रक्तपित्तोपहितं)'
+            , 'atidurgandhamatisaryate (अतिदुर्गन्धमतिसार्यते)'
+            , 'trushna (तृष्णा)'
+            , 'dah (दाह)'
+            , 'sved (स्वेद)'
+            , 'murchchha (मूर्च्छा)'
+            , 'udar shul (उदर शूल)'
+            , 'gud dah (गुद दाह)'
+            , 'gud pak (गुद पाक)'
+            , 'snigdham purisham (स्निग्धं पुरिषं)'
+            , 'shvetam purisham (श्वेतं पुरिषं)'
+            , 'pichil purisham (पिच्छिल पुरिषं)'
+            , 'tantum purisham (तंतुं पुरिषं)'
+            , 'aamam purisham (आमं पुरिषं)'
+            , 'guru purisham (गुरु पुरिषं)'
+            , 'durgandh purisham (दुर्गंध पुरिषं)'
+            , 'shleshmopahitam (श्लेष्मोपहीतं)'
+            , 'udarashul (उदरशूल)'
+            , 'alpalpambhikshnamatisaryate (अल्पाल्पंभिक्ष्णमतिसार्यते सप्रवाहिकं)'
+            , 'sapravahikam (सप्रवाहिकं)'
+            , 'guru udar (गुरु उदर)'
+            , 'guru gud (गुरु गुद)'
+            , 'guru basti (गुरु बस्ती)'
+            , 'guru vankshan (गुरु वंक्षण)'
+            , 'kreetapyakrut sangnya: (कृतेअप्यकृत संज्ञ:)'
+            , 'salomaharsh: (सलोमहर्ष:)'
+            , 'sotklesho (सोत्क्लेशो)'
+            , 'nidra (निद्रा)'
+            , 'aalasya (आलस्य)'
+            , 'sadan (सदन)'
+            , 'annadvesh (अन्नद्वेष)'
+            , 'pakva shonitabham (पक्व शोणीताभं)'
+            , 'yakrutkhandopamam (यकृत्खण्डोपमं)'
+            , 'medomansodakasannikasham (मेदोमांसोदकसन्निकाशं)'
+            , 'dadhi sam purish (दधी सम पूरिष)'
+            , 'ghrut sam purish (घृत सम पुरीष)'
+            , 'majja sam mal (मज्जा सम मल)'
+            , 'tail sam mal (तैल सम मल)'
+            , 'vasa sam mal (वसा सम मल)'
+            , 'kshir sam mal (क्षीर सम मल)'
+            , 'vesavar sam mal (वेसवार सम मल)'
+            , 'ati nil (अति नील)'
+            , 'ati rakt (अति रक्त)'
+            , 'ati krushna (अति कृष्ण)'
+            , 'udakamivacchham (उदकमिवाच्छं)'
+            , 'poonarmechakaabham (पूनर्मेचकाभम)'
+            , 'atisnigdh (अतिस्निग्ध)'
+            , 'harit purisham (हरित पुरिषं)'
+            , 'nil purisham (नील पुरिषं)'
+            , 'kashay purisham (कषाय पुरिषं)'
+            , 'karbur (कर्बुर)'
+            , 'aavilam (आविलं)'
+            , 'pchilam (पीच्छिलं)'
+            , 'tantum purisham (तंतुम पुरिषं)'
+            , 'aamam purisham (आमं पुरिषं)'
+            , 'chandrakopagatam (चंद्रकोपगतम)'
+            , 'atikunap gandhi (अतिकुणप गंधी)'
+            , 'putipuyagandhi (पुतीपुयगंधी)'
+            , 'matsyagandhi (मत्स्यगंधी)'
+            , 'makshikakrantam (मक्षिकाक्रांतं)'
+            , 'kuthit purisham (कुथित पुरिषं)'
+            , 'bahudhatoostrao (बहुधातूस्त्राव)'
+            , 'alp purisham (अल्प पुरिषं)'
+            , 'trushna (तृष्णा)'
+            , 'dah (दाह)'
+            , 'jvar (ज्वर)'
+            , 'bhram (भ्रम)'
+            , 'tamakashvas (तमकश्वास)'
+            , 'hikka (हिक्का)'
+            , 'shvasanubandh (श्वासानुबंध)'
+            , 'ativedanamvedanam (अतिवेदनमवेदनं)'
+            , 'pakva gudam (पक्व गुदं)'
+            , 'patit gulavalimam (पतीत गुलवलिमं)'
+            , 'mukt nal (मुक्त नाल)'
+            , 'atikshin bal (अतिक्षीण बल)'
+            , 'atikshin mans (अतिक्षीण मांस)'
+            , 'atikshin shonit (अतिक्षीण शोणीत)'
+            , 'sarvaparvasthishulin (सर्वपर्वास्थिशुलीन)'
+            , 'arochak (अरोचक)'
+            , 'arati (अरती)'
+            , 'pralap (प्रलाप)'
+            , 'sanmoh (संमोह)'
+            , 'sahasoparatavikaram (सहसोपरतविकारम)'
+            , 'nidranash (निद्रानाश)'
+            , 'shirobhram (शिरोभ्रम)'
+            , 'mukh shuskata (मुख शुष्कता)'
+            , 'mukh vairasya (मुख वैरस्य)'
+            , 'tiktaasyata (तिक्तास्यता)'
+            , 'shirodah (शिरोदाह)'
+            , 'shitecha (शीतेच्छा)'
+            , 'murchchha (मूर्च्छा)'
+            , 'netra pitata (नेत्र पितता)'
+            , 'mutra pitata (मूत्र पिताता)'
+            , 'varch pitata (वर्च पितता)'
+            , 'aruchi (अरुची)'
+            , 'aadhman (आध्मान)'
+            , 'kaphaprasek (कफप्रसेक)'
+            , 'ghranaartitodau (घ्रणार्तीतोदौ)'
+            , 'kshavathoorjalabha: (क्षवथूर्जलाभ:)'
+            , 'stravoanilat (स्त्रावोअनीलात्)'
+            , 'sasvaramurdharog: (सस्वरमुर्धरोग:)'
+            , 'nasagrapak (नासाग्रपाक)'
+            , 'jvar (ज्वर)'
+            , 'vaktrashosh (वक्त्रशोष)'
+            , 'trushna (तृष्णा)'
+            , 'ushnapitastravanani (उष्णपीतस्त्रवणानी)'
+            , 'kas (कास)'
+            , 'aruchi (अरुची)'
+            , 'stravaghanapraseka: (स्त्रावघनप्रसेका:)'
+            , 'strotasi chapi kandu: (स्त्रोतसी चापी कण्डू:)'
+            , 'sarvani rupani (सर्वाणी रूपाणी)'
+            , 'tivrarujeatidu:khe (तीव्ररुजेअतिदु:खे)'
+            , 'rodhabhighat (रोधाभीघात)'
+            , 'strao (स्त्राव)'
+            , 'shosh (शोष)'
+            , 'pakairghranam (पाकैर्घ्राणं)'
+            , 'yasch na vetti gandham (यश्च न वेत्ति गंधम्)'
+            , 'durgandhi chasyam (दुर्गंधी चास्यं)'
+            , 'bahush: prakopi (बहुश: प्रकोपी)'
+            , 'dushtapratishyay (दुष्टप्रतिश्याय)'
+            , 'bhram (भ्रम)'
+            , 'dah (दाह)'
+            , 'pipasa (पिपासा)'
+            , 'nistod (निस्तोद)'
+            , 'shul (शूल)'
+            , 'angamard (अंगमर्द)'
+            , 'kamp (कम्प)'
+            , 'jvar (ज्वर)'
+            , 'tamak shvas (तमक श्वास)'
+            , 'kas (कास)'
+            , 'asthisandhibhed (अस्थिसंधिभेद)'
+            , 'vivarna (विवर्ण)'
+            , 'vaman (वमन)'
+            , 'arochak (अरोचक)'
+            , 'avipak (अविपाक)'
+            , 'chakshushorakulatvam (चक्षुषोराकुलत्वम)'
+            , 'shvagamanam (श्वागमानम)'
+            , 'pipalikas (पिपलिकास)'
+            , 'visarpati sovakash:shyavarunabhas: (विसर्पती सोवकाश:श्यावारुणाभास:)'
+            , 'visarpati sovakash:shvayathuman (विसर्पती सोवकाश:श्वयथुमान)'
+            , 'nistod (निस्तोद)'
+            , 'bhedashul (भेदशूल)'
+            , 'aayam (आयाम)'
+            , 'sankoch (संकोच)'
+            , 'harsh (हर्ष)'
+            , 'sphuranairatimatram prapidyate (स्फुरणैरतिमात्रं प्रपिड्यते)'
+            , 'shigrabhadai: sphotakaistanubhirrunabhai: (शीघ्रभदै: स्फोटकैस्तनुभीररुणाभै:)'
+            , 'shyavairvatanuvishadarunalpastravai: (श्यावैर्वातनुविशदारुणाल्पास्त्रावै:)'
+            , 'vibaddhavatamutrapurisch (विबद्धवातमूत्रपुरिश्च)'
+            , 'jvar (ज्वर)'
+            , 'trushna (तृष्णा)'
+            , 'murchchha (मूर्च्छा)'
+            , 'chhardi (छर्दी)'
+            , 'aruchi (अरुचि)'
+            , 'angabhed (अंगभेद)'
+            , 'sved (स्वेद)'
+            , 'atimatramantadah (अतिमात्रमन्तदाह)'
+            , 'pralap (प्रलाप)'
+            , 'shiro:ruk (शिरो:रुक)'
+            , 'chakshushorakulatvam (चक्षुषोराकुलत्वम)'
+            , 'svapnam (स्वप्नम)'
+            , 'atirbhram (अतिर्भ्रम)'
+            , 'shitvatavaritarshotimatram (शीतवातवारितर्षोतिमात्रं)'
+            , 'haritanetra (हरितनेत्र)'
+            , 'haritamutra (हरितमूत्र)'
+            , 'haritavarchastvam (हरितवर्चस्त्वं)'
+            , 'haridranetra (हारिद्रनेत्र)'
+            , 'haridramutra (हारिद्रमूत्र)'
+            , 'haridravarchastvam (हारिद्रवर्चस्त्वं)'
+            , 'haritarupadarshanam (हरितरूपदर्शनं)'
+            , 'haridrarupadarshanam (हारिद्ररूपदर्शनं)'
+            , 'bhram (भ्रम)'
+            , 'dah (दाह)'
+            , 'pipasa (पिपासा)'
+            , 'nistod (निस्तोद)'
+            , 'shul (शूल)'
+            , 'angamard (अंगमर्द)'
+            , 'kamp (कम्प)'
+            , 'jvar (ज्वर)'
+            , 'tamak shvas (तमक श्वास)'
+            , 'kas (कास)'
+            , 'asthisandhibhed (अस्थिसंधिभेद)'
+            , 'vivarna (विवर्ण)'
+            , 'vaman (वमन)'
+            , 'arochak (अरोचक)'
+            , 'avipak (अविपाक)'
+            , 'chakshushorakulatvam (चक्षुषोराकुलत्वम)'
+            , 'shvagamanam (श्वागमानम)'
+            , 'pipalikas (पिपलिकास)'
+            , 'visarpati sovakash:shyavarunabhas: (विसर्पती सोवकाश:श्यावारुणाभास:)'
+            , 'visarponusarpati sovakashastamra varnanamanyatamam pushyati (विसर्पोनुसर्पति सोवकाशस्ताम्र वर्णानामन्यतमं पुष्यति)'
+            , 'visarponusarpati sovakashaharit varnanamanyatamam pushyati (विसर्पोनुसर्पति सोवकाशहरित वर्णानामन्यतमं पुष्यति)'
+            , 'visarponusarpati sovakashaharidra varnanamanyatamam pushyati (विसर्पोनुसर्पति सोवकाशहारिद्र वर्णानामन्यतमं पुष्यति)'
+            , 'visarponusarpati sovakashanil varnanamanyatamam pushyati (विसर्पोनुसर्पति सोवकाशनील वर्णानामन्यतमं पुष्यति)'
+            , 'visarponusarpati sovakashakrushna varnanamanyatamam pushyati (विसर्पोनुसर्पति सोवकाशकृष्ण वर्णानामन्यतमं पुष्यति)'
+            , 'visarponusarpati sovakasharaktanam varnanamanyatamam pushyati (विसर्पोनुसर्पति सोवकाशरक्तानां वर्णानामन्यतमं पुष्यति)'
+            , 'madhurasyatvam (मधुरास्यत्वम)'
+            , 'aasyopalepo (आस्योपलेपो)'
+            , 'nishthivika (निष्ठिविका)'
+            , 'chhardi (छर्दी)'
+            , 'aalasya (आलस्य)'
+            , 'staimityam (स्तैमित्यं)'
+            , 'agninasho (अग्निनाशो)'
+            , 'dourbalya (दौर्बल्य)'
+            , 'visarponusarpati sovakash:shvavathuman (विसर्पोनुसर्पति सोवकाश:श्ववथुमान)'
+            , 'pandoornatirakt: (पाण्डूर्नातिरक्त:)'
+            , 'snehasu (स्नेहसु)'
+            , 'atistambha (अतिस्तम्भ)'
+            , 'gouravairavanitolpavedanah (गौरवैरवनितोल्पवेदनः)'
+            , 'krichrapakai (कृच्छ्रपाकै)'
+            , 'chirakari (चिरकारी)'
+            , 'abhirbahulatvagupalepai: (अभिर्बहुलत्वगुपलेपै:)'
+            , 'sphotai:shvetapandubhiranubadhyate (स्फोटै:श्वेतपाण्डुभिरनुबध्यते)'
+            , 'prabhinastu shvetam stravati (प्रभिनस्तु श्वेतं स्त्रवति)'
+            , 'prabhinastu pichil stravati (प्रभिनस्तु पिच्छिल स्त्रवति)'
+            , 'prabhinastu tantum stravati (प्रभिनस्तु तंतुम स्त्रवति)'
+            , 'prabhinastu maddanam stravati (प्रभिनस्तु मध्दनम स्त्रवति)'
+            , 'prabhinastu anubaddam stravati (प्रभिनस्तु अनुबध्दं स्त्रवति)'
+            , 'prabhinastu snigdham stravati (प्रभिनस्तु स्निग्धम स्त्रवति)'
+            , 'urdhvam ch gurubhi:sthirairjalavatatai (ऊर्ध्वं च गुरुभि:स्थिरैर्जालावततै)'
+            , 'snigdhairbahulatvagupalepaivranairenubadhyateanushangi ch bhavati (स्निग्धैर्बहुलत्वगुपलेपैव्रनैरेनुबध्यतेअनुषंगी च भवति)'
+            , 'shvetanakh (श्वेतनख)'
+            , 'shvetanayan (श्वेतनयन)'
+            , 'shvetavadan (श्वेतवदन)'
+            , 'shvetatvak (श्वेतत्वक)'
+            , 'shvetamutra (श्वेतमूत्र)'
+            , 'shvetavarchasva (श्वेतवर्चस्व)'
+            , 'tadupatapadatur: sarvashariramagarairivakiryamanam manyate (तदुपतापादातुर: सर्वशरीरमगांरैरिवकिर्यामाणं मन्यते)'
+            , 'chhardi (छर्दी)'
+            , 'atisar (अतिसार)'
+            , 'murchchha (मूर्च्छा)'
+            , 'dah (दाह)'
+            , 'moh (मोह)'
+            , 'jvar (ज्वर)'
+            , 'tamakashvas (तमकश्वास)'
+            , 'aruchi (अरुचि)'
+            , 'shitak: shitajvaro (शीतक: शीतज्वरो)'
+            , 'shitak: gouravam (शीतक: गौरवं)'
+            , 'shitak: nidra (शीतक: निद्रा)'
+            , 'shitak: tandra (शीतक: तन्द्रा)'
+            , 'shitak: aruchi (शीतक: अरुची)'
+            , 'asthisandhibhed (अस्थिसंधिभेद)'
+            , 'trushna (तृष्णा)'
+            , 'avipak (अविपाक)'
+            , 'ang bhedadibhischabhibhuyate (अंग भेदादिभिश्चाभिभूयते)'
+            , 'visarponusarpati sovakash: shantaaangar prakashotirakto va bhavati (विसर्पोनुसर्पति सोवकाश: शांताअंगार प्रकाशोतिरक्तो वा भवति)'
+            , 'agnidagdhaprakaraisch sphotarupachiyate (अग्निदग्धप्रकारैश्च स्फोटैरूपचीयते)'
+            , 'shigragatvadasvev marmanusari bhavati (शीघ्रगत्वादास्वेव मर्मानुसारी भवति)'
+            , 'hikka (हिक्का)'
+            , 'shvas (श्वास)'
+            , 'nashayati nidra (नाशयति निद्रा)'
+            , 'nashtanidra:pramudhasangnyo (नष्टनिद्रा:प्रमुढसंज्ञो)'
+            , 'vyathitacheta na kvachan sukhamupalabhate (व्यथितचेता न क्वचन सुखमुपलभते)'
+            , 'aratiparit:sthanadasanacchhayyam (अरतीपरित:स्थानादासनाच्छय्यां)'
+            , 'krantumichati clishtabhuyishthaschashu nidram bhajati (क्रान्तुमिच्छति क्लिष्टभूयिष्ठश्चाशु निद्रां भजति)'
+            , 'durbalom (दुर्बलों)'
+            , 'shitajvar: (शीतज्वर:)'
+            , 'shirogurutvam (शिरोगुरुत्वं)'
+            , 'dah: (दाह:)'
+            , 'staimityam (स्तैमित्यम)'
+            , 'angavasadanam (अंगावसदनं)'
+            , 'nidra (निद्रा)'
+            , 'tandra (तन्द्रा)'
+            , 'moho (मोहो)'
+            , 'annadvesh (अन्नाद्वेष)'
+            , 'pralapo (प्रलापो)'
+            , 'agninasho (अग्निनाशो)'
+            , 'dourbalyam (दौर्बल्यम)'
+            , 'asthibhedo (अस्थिभेदो)'
+            , 'murchchha (मूर्च्छा)'
+            , 'pipasa (पिपासा)'
+            , 'srotasam pralepo (स्रोतसां प्रलेपो)'
+            , 'jadyamindriyanam (जाड्यमिन्द्रियाणां)'
+            , 'prayopaveshanam (प्रायोपवेशनम)'
+            , 'angavikshep (अंगविक्षेप)'
+            , 'angamard (अंगमर्द)'
+            , 'arati (अरति)'
+            , 'rautsukyam (रौत्सुक्यं)'
+            , 'visarpati sovakasho raktapidkaavkirna (विसर्पति सोवकाशो रक्तपिडकावकीर्ण)'
+            , 'visarpati sovakasho pitapidkaavkirna (विसर्पति सोवकाशो पीतपिडकावकीर्ण)'
+            , 'visarpati sovakasho pandupidkaavkirna (विसर्पति सोवकाशो पाण्डुपिडकावकीर्ण)'
+            , 'iv mechakaabha: (इव मेचकाभ:)'
+            , 'snigdho (स्निग्धो)'
+            , 'bahushma (बहुष्मा)'
+            , 'guru: (गुरू:)'
+            , 'stimitavedan: (स्तिमितवेदन:)'
+            , 'shvayathuman (श्वयथुमान)'
+            , 'gambhirapako (गंभीरपाको)'
+            , 'nirastrao: (निरस्त्राव:)'
+            , 'svinnaklinaputimansatvak (स्विन्नक्लिनपुतिमांसत्वक)'
+            , 'putimansatvak (पुतिमांसत्वक)'
+            , 'kramenaalparuk (क्रमेणाल्परुक)'
+            , 'paramrushtovadiryate kardam ivavapiditoantaram (परामृष्टोवदिर्यते कर्दम इवावपीडितोअंतरं)'
+            , 'prayacchhutyupaklinaputimansatyagi (प्रयच्छूत्युपक्लिनपुतिमांसत्यागी)'
+            , 'sirasnayusandarshi (सिरास्नायुसंदर्शी)'
+            , 'kunapagandhi ch bhavati (कुणपगन्धी च भवति)'
+            , 'sangnyasmrutihanta ch (संज्ञास्मृतीहंता च)'
+            , 'kaphashaye sanjanayati shleshmanamanekadha bhindan kramen granthimala krichra pak sadhyan (कफशये संजनयती श्लेष्मानमनेकधा भिन्दन क्रमेण ग्रंथिमाला कृच्छ्र पाक साध्यान)'
+            , 'tivrarujanam (तीव्ररुजानं)'
+            , 'sthulanamanunam va (स्थूलानामणुनां वा)'
+            , 'dirghavruttaraktana (दीर्घवृत्तरक्ताना)'
+            , 'jangha glani (जंघा ग्लानि)'
+            , 'uru glani (उरू ग्लानि)'
+            , 'shashvat jangha dah (शाश्वत जंघा दाह)'
+            , 'shashvat uru dah (शाश्वत उरू दाह)'
+            , 'shashvat jangha vedana (शाश्वत जंघा वेदना)'
+            , 'shashvat uru vedana (शाश्वत उरू वेदना)'
+            , 'padam vyathate nyastam (पदं व्यथते न्यस्तं)'
+            , 'shit sparsham na vetti (शीत स्पर्शम् न वेत्ती)'
+            , 'sansthane na ishvarah (संस्थाने न ईश्वरः)'
+            , 'pidane na ishvarah (पीडने न ईश्वरः)'
+            , 'gatyam na ishvarah (गत्यां न ईश्वरः)'
+            , 'chalane na ishvarah (चालने न ईश्वरः)'
+            , 'anyaneyau padau manyate (अन्यनेयौ पादौ मन्यते)'
+            , 'sambhagnavuru padau manyate (संभग्नावूरू पादौ मन्यते)'
+            , 'dah (दाह)'
+            , 'vedana (वेदना)'
+            , 'tod (तोद)'
+            , 'hritshul (हृतशूल)'
+            , 'parshva shul (पार्श्व शूल)'
+            , 'ura:shul (उर:शूल)'
+            , 'shir:shul (शिर:शूल)'
+            , 'shusk ura (शुष्क उर)'
+            , 'shusk kanth (शुष्क कंठ)'
+            , 'shusk vaktra (शुष्क वक्त्र)'
+            , 'svarabhed (स्वरभेद)'
+            , 'svar bhrusham (स्वर भृशम)'
+            , 'lomaharsh (लोमहर्ष)'
+            , 'svar nirghosh (स्वर निर्घोष)'
+            , 'dainya (दैन्य)'
+            , 'kshobha (क्षोभ)'
+            , 'moh (मोह)'
+            , 'shusk kas (शुष्क कास)'
+            , 'kaf shuskam (कफ़ शुष्कं)'
+            , 'kricchhanmuktvaaalpatam vrajet (कृच्छान्मूक्त्वाअल्पतां व्रजेत)'
+            , 'jirneanne vegavanmaruto bhavet (जीर्णेअन्ने वेगवान्मारुतो भवेत)'
+            , 'sharir dourbalya (शरीर दौर्बल्य)'
+            , 'pitanishthivan (पीतनिष्ठीवन)'
+            , 'pit akshitvam (पीत अक्षीत्वं)'
+            , 'tikt aasyatvam (तिक्त आस्यत्वं)'
+            , 'svaramaya: (स्वरामय:)'
+            , 'urodhumayanam (उरोधुमायनं)'
+            , 'trushna (तृष्णा)'
+            , 'dah (दाह)'
+            , 'moh (मोह)'
+            , 'aruchi (अरुची)'
+            , 'bhram (भ्रम)'
+            , 'pratatam kasasamanasch (प्रततं काससमानश्च)'
+            , 'jyoteeshiv ch pashyati (ज्योतीषीव च पश्यति)'
+            , 'shleshman pittasansrisht nishthivati (श्लेष्माण पित्तसंसृष्ट निष्ठीवती)'
+            , 'agnimandya (अग्निमांद्य)'
+            , 'aruchi (अरुची)'
+            , 'cchhardi (च्छर्दि)'
+            , 'pinas (पिनस)'
+            , 'sotklesho (सोत्क्लेशो)'
+            , 'gourav (गौरव)'
+            , 'lomaharsh (लोमहर्ष)'
+            , 'aasya madhurya (आस्य माधुर्य)'
+            , 'sharir cledasam (शरीर क्लेदसं)'
+            , 'sadan (सदन)'
+            , 'bahalam madhuram nishthivati kaf (बहलं मधुरं निष्ठीवती कफ़)'
+            , 'snigdh nishthivati kaf (स्निग्ध निष्ठीवती कफ़)'
+            , 'ghanam nishthivati kaf (घनं निष्ठीवती कफ़)'
+            , 'kasamano hyarug vaksh: sampurnamiv manyate (कासमानो ह्यरुग् वक्ष: सम्पूर्णमिव मन्यते)'
+            , 'sa purvamma kasate shuskam (स पूर्वंम कासते शुष्कम)'
+            , 'shthivet sashonitam (ष्ठिवेत सशोणितम्)'
+            , 'kanthen rujaatyarth (कंठेन रुजाअत्यर्थ)'
+            , 'viruganev ch ura (विरुगणेव च उर)'
+            , 'suchibhiriv tikshnabhistudyamanen shoolina (सूचीभिरिव तीक्ष्णाभिस्तुद्यमानेन शूलिना)'
+            , 'duhkhasparshen shulen (दुःखस्पर्शेन शूलेन)'
+            , 'bhedpida (भेदपीडा)'
+            , 'abhitap (अभिताप)'
+            , 'parvabhed (पर्वभेद)'
+            , 'jvar (ज्वर)'
+            , 'shvas (श्वास)'
+            , 'trushna (तृष्णा)'
+            , 'vaisvaryapidit: (वैस्वर्यपीडित:)'
+            , 'paravat ivakujan (पारावत इवाकूजन्)'
+            , 'kasavegatkshatodvabhavat (कासवेगात्क्षतोद्वभवात्)'
+            , 'durgndh shthivet kapham (दूर्गंन्ध ष्ठिवेत् कफम्)'
+            , 'haritam shthivet kapham (हरीतं ष्ठिवेत् कफम्)'
+            , 'rakt shthivet kapham (रक्त ष्ठिवेत् कफम्)'
+            , 'shthivet puyopamam kapham (ष्ठिवेत् पूयोपमं कफम्)'
+            , 'sthanadutkasamanasch (स्थानादुत्कसमानश्च)'
+            , 'hridayam manyate chyutam (हृदयं मन्यते च्युतम्)'
+            , 'akasmat ushna (अकस्मात उष्ण)'
+            , 'akasmat shit (अकस्मात शीत)'
+            , 'bahyashi durbal (बह्यशी दुर्बल)'
+            , 'krush: (कृश:)'
+            , 'snigdhacchhamukh (स्निग्धाच्छमुख)'
+            , 'snigdhacchhavarna (स्निग्धाच्छवर्ण)'
+            , 'snigdhachatvak (स्निग्धाच्छत्वक्)'
+            , 'shrimaddarshanalochan: (श्रीमद्दर्शनलोचन:)'
+            , 'panipadatalai: shlakshna: (पाणिपादतलै: श्लक्ष्ण:)'
+            , 'satatasuyako ghrini (सततासूयको घृणी)'
+            , 'jvaro mishrakrutistasya (ज्वरो मिश्राकृतिस्तस्य)'
+            , 'parshvaruk (पार्श्वरुक्)'
+            , 'pinas (पिनस)'
+            , 'aruchi (अरुची)'
+            , 'bhinnasanhatavarchyastvam (भिन्नसंहतवर्च्यस्त्वं)'
+            , 'svarabhedoanimittat: (स्वरभेदोअनिमित्तत:)'
+        ];
+
+        const selectEl = document.getElementById('symptoms');
+
+        myOptions.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item;
+            option.text = item;
+            selectEl.appendChild(option);
+        });
+
+        let tomSelectInstance = new TomSelect('#symptoms', {
+            plugins: ['remove_button', 'checkbox_options'],
+            create: false,
+            maxItems: null,
+            onChange: function () {
+                validateForm();
+            }
+        });
+
+        const MAX_POINTS = 250;
+        let port, reader;
+        let isConnected = false, isRecording = false;
+        let recordedData = [];
+        let calibrationOffsets = [0, 0, 0], windowBuffer = [[], [], []];
+        let calibrationSlopes = [1.0, 1.0, 1.0], calibrationIntercepts = [0, 0, 0];
+        let dataStartTime = null, recordingStartTime = 0;
+        let timerInterval = null, reconnectInterval = null;
+        let isManuallyDisconnected = false, isProcessedView = true;
+
+        document.getElementById('DOB').valueAsDate = new Date();
+
+        const inputs = document.querySelectorAll('.auto-save');
+        const connectBtn = document.getElementById('btnConnect');
+        const disconnectBtn = document.getElementById('btnDisconnect');
+        const requiredFields = ['patientName', 'doctorName', 'DOB', 'age', 'sex'];
+
+        function validateForm() {
+            const allFilled = requiredFields.every(id => {
+                const el = document.getElementById(id);
+                return el && el.value.trim() !== '';
+            });
+
+            const msg = document.getElementById('connectMsg');
+            connectBtn.disabled = !allFilled;
+            msg.style.display = allFilled ? 'none' : 'block';
+        }
+
+        document.querySelectorAll('.auto-save').forEach(el => {
+            el.addEventListener('input', validateForm);
+            el.addEventListener('change', validateForm);
+        });
+
+        function createChart(canvasId, color) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        borderColor: color, borderWidth: 2, data: [],
+                        pointRadius: 0, tension: 0.1, fill: false
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, animation: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: true, title: { display: true, text: 'Time (s)' }, ticks: { maxTicksLimit: 10 } },
+                        y: { grace: '10%' }
+                    }
+                }
+            });
+        }
+
+        const charts = [
+            createChart('chart1', '#2563eb'),
+            createChart('chart2', '#16a34a'),
+            createChart('chart3', '#dc2626')
+        ];
+
+        async function connectSerial() {
+            try {
+                isManuallyDisconnected = false;
+                if (!port) port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+                reader = port.readable.getReader();
+                updateUIState(true);
+                startReading();
+            } catch (err) {
+                console.error("Connection Error:", err);
+                if (err.name === 'NetworkError' || err.message.includes('open') || err.message.includes('in use')) {
+                    alert("COM PORT BUSY: The selected port is already open.");
+                } else {
+                    alert("Failed to connect to device: " + err.message);
+                }
+                handleUnexpectedDisconnect();
+            }
+        }
+
+        async function startReading() {
+            const decoder = new TextDecoder();
+            let buffer = "";
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) throw new Error("Stream closed");
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop();
+                    lines.forEach(line => {
+                        if (line.trim()) processData(line.trim());
+                    });
+                }
+            } catch (err) {
+                console.warn("Read error:", err);
+                handleUnexpectedDisconnect();
+            }
+        }
+
+        function handleUnexpectedDisconnect() {
+            if (isManuallyDisconnected) return;
+            updateUIState(false);
+            showDisconnectedError();
+            startReconnectLoop();
+        }
+
+        function startReconnectLoop() {
+            if (reconnectInterval) return;
+            reconnectInterval = setInterval(async () => {
+                try {
+                    if (port && !port.readable) {
+                        await port.open({ baudRate: 115200 });
+                        reader = port.readable.getReader();
+                        clearInterval(reconnectInterval);
+                        reconnectInterval = null;
+                        updateUIState(true);
+                        startReading();
+                    }
+                } catch (e) {
+                    console.log("Waiting for device...");
+                }
+            }, 2000);
+        }
+
+        async function disconnectDevice() {
+            isManuallyDisconnected = true;
+            clearInterval(reconnectInterval);
+            reconnectInterval = null;
+            try {
+                if (reader) {
+                    await reader.cancel();
+                    reader.releaseLock();
+                    reader = null;
+                }
+                if (port) {
+                    await port.close();
+                    port = null;
+                }
+            } catch (e) { console.warn(e); }
+            updateUIState(false);
+        }
+
+        function showDisconnectedError() {
+            const badge = document.getElementById("statusBadge");
+            badge.textContent = "DEVICE DISCONNECTED";
+            badge.className = "badge off";
+        }
+
+        function updateUIState(connected) {
+            isConnected = connected;
+            const statusBadge = document.getElementById('statusBadge');
+            if (connected) {
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'flex';
+                statusBadge.className = "badge on";
+                statusBadge.innerText = "CONNECTED";
+                inputs.forEach(input => {
+                    input.readOnly = true; input.disabled = true; input.classList.add('locked-input');
+                });
+                tomSelectInstance.lock();
+                enableControls(true);
+            } else {
+                connectBtn.style.display = 'flex';
+                connectBtn.disabled = false;
+                disconnectBtn.style.display = 'none';
+                statusBadge.className = "badge off";
+                statusBadge.innerText = "DISCONNECTED";
+                inputs.forEach(input => {
+                    input.readOnly = false; input.disabled = false; input.classList.remove('locked-input');
+                });
+                tomSelectInstance.unlock();
+                enableControls(false);
+                if (isRecording) toggleRecording();
+                dataStartTime = null;
+            }
+        }
+
+        function calculateMean(dataArray) {
+            const n = dataArray.length;
+            if (n === 0) return 0;
+            return dataArray.reduce((a, b) => a + b, 0) / n;
+        }
+
+        function toggleViewMode() {
+            isProcessedView = document.getElementById('viewToggle').checked;
+        }
+
+        function processData(csvString) {
+            try {
+                if (!csvString) return;
+                let rawValues = csvString.split(',').map(val => parseFloat(val.trim()));
+                if (rawValues.length !== 3 || rawValues.some(isNaN)) return;
+
+                const currentCalibrated = rawValues.map((v, i) => {
+                    return ((v * calibrationSlopes[i]) + calibrationIntercepts[i]) - calibrationOffsets[i];
+                });
+
+                const now = Date.now();
+                if (dataStartTime === null) dataStartTime = now;
+                const relativeSeconds = (now - dataStartTime) / 1000;
+                const timeLabel = relativeSeconds.toFixed(2);
+
+                charts.forEach((chart, i) => {
+                    const rawBuffer = windowBuffer[i];
+                    rawBuffer.push(currentCalibrated[i]);
+                    if (rawBuffer.length > MAX_POINTS) rawBuffer.shift();
+
+                    let finalPlotValue = currentCalibrated[i];
+                    if (isProcessedView) {
+                        const baseline = calculateMean(rawBuffer);
+                        finalPlotValue = currentCalibrated[i] - baseline;
+                    }
+
+                    chart.data.datasets[0].data.push(finalPlotValue);
+                    chart.data.labels.push(timeLabel);
+
+                    if (chart.data.labels.length > MAX_POINTS) {
+                        chart.data.datasets[0].data.shift();
+                        chart.data.labels.shift();
+                    }
+                    chart.update("none");
+                });
+
+                if (isRecording) {
+                    recordedData.push({
+                        timestamp: now,
+                        relativeTime: relativeSeconds,
+                        rawValues: rawValues,
+                        calibratedValues: currentCalibrated
+                    });
+                }
+            } catch (e) { console.error("Processing Error:", e); }
+        }
+
+        function toggleRecording() {
+            isRecording = !isRecording;
+            const btn = document.getElementById('btnRecord');
+            const timerDisplay = document.getElementById('recordTimer');
+
+            if (isRecording) {
+                recordedData = [];
+                btn.innerHTML = "<span>⏹</span> Stop";
+                btn.style.backgroundColor = "var(--error)";
+
+                recordingStartTime = Date.now();
+                timerDisplay.textContent = "00:00";
+                
+                timerInterval = setInterval(() => {
+                    const elapsed = Date.now() - recordingStartTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    timerDisplay.textContent = 
+                        (minutes < 10 ? '0' : '') + minutes + ":" + 
+                        (seconds < 10 ? '0' : '') + seconds;
+                }, 1000);
+            } else {
+                clearInterval(timerInterval);
+                btn.innerHTML = "<span>⏺</span> Record";
+                btn.style.backgroundColor = "var(--success)";
+                document.getElementById('btnSave').disabled = false;
+            }
+        }
+
+        function downloadJSON() {
+            if (recordedData.length === 0) return alert("No data recorded!");
+            const metaFields = {};
+
+            document.querySelectorAll('.auto-save').forEach(input => {
+                if (input.id === 'symptoms') {
+                    metaFields[input.id] = tomSelectInstance.getValue();
+                } else {
+                    metaFields[input.id] = input.value;
+                }
+            });
+
+            const exportObj = {
+                metadata: {
+                    ...metaFields,
+                    savedAt: new Date().toISOString(),
+                    recordingDuration: document.getElementById('recordTimer').textContent,
+                    sensorLabels: ["V", "P", "K"],
+                    calibrationApplied: calibrationOffsets
+                },
+                data: recordedData
+            };
+
+            const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+
+            const filename = (metaFields.patientName || "Patient_Data").replace(/[^a-z0-9]/gi, '_');
+            link.download = filename + ".json";
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function enableControls(enabled) {
+            document.getElementById('btnRecord').disabled = !enabled;
+        }
+        
+        // Initial form validation state on load
+        validateForm();
+    </script>
+</body>
+</html>
