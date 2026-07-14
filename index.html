@@ -1664,6 +1664,7 @@ const myOptions = [
         ];
 
         async function connectSerial() {
+            alert("Serial API Status: " + typeof navigator.serial);
             try {
                 isManuallyDisconnected = false;
                 if (!port) port = await navigator.serial.requestPort();
