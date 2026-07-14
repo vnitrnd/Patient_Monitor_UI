@@ -11,6 +11,19 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!--
+        Chrome for Android has NO navigator.serial (Web Serial API) at all - Android's SDK
+        doesn't expose an OS-level serial API for Chrome to build on. It DOES support WebUSB
+        though, so on Android we fall back to Google's official web-serial-polyfill, which
+        re-implements the Serial API on top of WebUSB for USB CDC-ACM devices (which is what
+        the ESP32-C3's built-in USB Serial/JTAG controller enumerates as). Desktop Chrome/Edge
+        keep using the native navigator.serial as before - nothing changes for them.
+    -->
+    <script type="module">
+        import { serial as serialPolyfill } from 'https://cdn.jsdelivr.net/npm/web-serial-polyfill@1.0.15/dist/serial.js';
+        window.__serialPolyfill = serialPolyfill;
+    </script>
+
     <style>
         :root {
             --primary: #0ea5e9;
@@ -420,11 +433,11 @@
 
     <header class="app-header">
         <div class="logo-container">
-            <img src="logo.png" alt="Logo" class="institute-logo"
+            <img src="vnit.jpg" alt="Logo" class="institute-logo"
                 onerror="this.src='https://placehold.co/100x100?text=LOGO'">
         </div>
         <div class="header-titles">
-            <h1 class="institute-name">PARIJATAK AYURVEDA</h1>
+            <h1 class="institute-name">Visvesvaraya National Institute of Technology, Nagpur</h1>
             <h2 class="app-name">Patient Monitor System</h2>
         </div>
     </header>
@@ -436,12 +449,12 @@
 
             <div class="input-group">
                 <label class="required">Patient Name</label>
-                <input type="text" id="patientName" class="auto-save" placeholder="Enter Name">
+                <input type="text" id="patientName" class="auto-save" value="Enter Name">
             </div>
 
             <div class="input-group">
                 <label class="required">Doctor Name</label>
-                <input type="text" id="doctorName" class="auto-save" placeholder="Dr. Name">
+                <input type="text" id="doctorName" class="auto-save" value="Dr. Name">
             </div>
 
             <div class="input-group">
@@ -451,7 +464,7 @@
 
             <div class="input-group">
                 <label class="required">Age</label>
-                <input type="number" id="age" class="auto-save" placeholder="35">
+                <input type="number" id="age" class="auto-save" value="35">
             </div>
 
             <div class="input-group">
@@ -1612,7 +1625,8 @@ const myOptions = [
         let timerInterval = null, reconnectInterval = null;
         let isManuallyDisconnected = false, isProcessedView = true;
 
-        document.getElementById('DOB').valueAsDate = new Date();
+        //document.getElementById('DOB').valueAsDate = new Date();
+        document.getElementById('DOB').value = new Date().toISOString().split('T')[0];
 
         const inputs = document.querySelectorAll('.auto-save');
         const connectBtn = document.getElementById('btnConnect');
@@ -1663,19 +1677,48 @@ const myOptions = [
             createChart('chart3', '#dc2626')
         ];
 
+        // Returns the best available serial transport:
+        // - Desktop Chrome/Edge (Win/Mac/Linux/ChromeOS): native Web Serial API
+        // - Android Chrome (no navigator.serial): WebUSB-based polyfill
+        // - Unsupported browsers (e.g. iOS Safari, Firefox): null
+        let usingPolyfill = false;
+        function getSerialAPI() {
+            if ('serial' in navigator) {
+                usingPolyfill = false;
+                return navigator.serial;
+            }
+            if ('usb' in navigator && window.__serialPolyfill) {
+                usingPolyfill = true;
+                return window.__serialPolyfill;
+            }
+            return null;
+        }
+
         async function connectSerial() {
-            alert("Serial API Status: " + typeof navigator.serial);
             try {
                 isManuallyDisconnected = false;
-                if (!port) port = await navigator.serial.requestPort();
+                const serialAPI = getSerialAPI();
+                if (!serialAPI) {
+                    alert("This browser can't access USB serial devices.\n\nUse Chrome or Edge on Windows/Mac, or Chrome on Android with OTG enabled.");
+                    return;
+                }
+                // No filters needed: native API lists all serial ports, and the
+                // WebUSB polyfill defaults to filtering by the CDC-ACM interface
+                // class, which is exactly what the ESP32-C3 exposes.
+                if (!port) port = await serialAPI.requestPort();
                 await port.open({ baudRate: 115200 });
                 reader = port.readable.getReader();
                 updateUIState(true);
                 startReading();
             } catch (err) {
                 console.error("Connection Error:", err);
-                if (err.name === 'NetworkError' || err.message.includes('open') || err.message.includes('in use')) {
-                    alert("COM PORT BUSY: The selected port is already open.");
+                if (err.name === 'NotFoundError') {
+                    // User closed the device chooser without selecting anything - not a real error.
+                    return;
+                } else if (err.name === 'NetworkError' || err.message.includes('open') || err.message.includes('in use')) {
+                    alert("PORT BUSY: The selected device is already open in another tab or app (e.g. Serial USB Terminal). Close it and try again.");
+                } else if (usingPolyfill && err.name === 'SecurityError') {
+                    alert("Couldn't claim the USB device. On some Android devices you may need to disconnect other apps using the port, or reconnect the cable.");
                 } else {
                     alert("Failed to connect to device: " + err.message);
                 }
