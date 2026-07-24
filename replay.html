@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Replay - Patient Monitor System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --accent: #0f172a;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --error: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text-main: #334155;
+            --text-light: #64748b;
+        }
+
+        [data-theme="dark"] {
+            --primary: #38bdf8;
+            --primary-dark: #0ea5e9;
+            --accent: #e2e8f0;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --border: #334155;
+            --text-main: #cbd5e1;
+            --text-light: #94a3b8;
+        }
+
+        [data-theme="dark"] .institute-logo {
+            filter: brightness(1.2) contrast(1.1);
+        }
+
+        [data-theme="dark"] input,
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea {
+            background: #1e293b;
+            color: #cbd5e1;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] input:focus,
+        [data-theme="dark"] select:focus,
+        [data-theme="dark"] textarea:focus {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .badge.off {
+            background: #450a0a;
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] .badge.on {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        [data-theme="dark"] .badge.idle {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .badge.playing {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        [data-theme="dark"] .badge.paused {
+            background: #451a03;
+            color: #fbbf24;
+        }
+
+        [data-theme="dark"] .badge.loaded {
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+
+        [data-theme="dark"] .timer-box {
+            background: #0f172a;
+            color: #38bdf8;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .locked-input {
+            background-color: #0f172a !important;
+            color: #64748b !important;
+        }
+
+        [data-theme="dark"] .upload-area {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .upload-area:hover {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .meta-card {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .file-info {
+            background: #0f172a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        .app-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+            height: 60px;
+        }
+
+        .logo-container {
+            height: 45px;
+            width: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .institute-logo {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .header-titles {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .institute-name {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .app-name {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .header-badge {
+            margin-left: auto;
+            background: var(--primary);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* --- LAYOUT --- */
+        .layout-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* --- LEFT COLUMN (FILE INFO + META) --- */
+        .sidebar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .form-header {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--bg);
+        }
+
+        /* File Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg);
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f0f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: #e0f2fe;
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .upload-hint {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Metadata Display */
+        .meta-section {
+            display: none;
+        }
+
+        .meta-section.active {
+            display: block;
+        }
+
+        .meta-card {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .meta-row:last-child {
+            border-bottom: none;
+        }
+
+        .meta-label {
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .meta-value {
+            font-weight: 500;
+            color: var(--text-main);
+            text-align: right;
+            max-width: 60%;
+            word-break: break-word;
+        }
+
+        .meta-value.chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: flex-end;
+        }
+
+        .chip {
+            background: var(--primary);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* File Info Bar */
+        .file-info {
+            display: none;
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+        }
+
+        .file-info.active {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .file-size {
+            color: var(--text-light);
+            font-size: 0.75rem;
+        }
+
+        .btn-clear {
+            background: none;
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .btn-clear:hover {
+            background: #fef2f2;
+        }
+
+        /* Input styles (read-only) */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            background: #f8fafc;
+            box-sizing: border-box;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .locked-input {
+            background-color: #e2e8f0;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* --- RIGHT COLUMN (PLAYBACK CONTROLS + GRAPHS) --- */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        /* PLAYBACK CONTROL BAR */
+        .control-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .control-group-left,
+        .control-group-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-play {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-pause {
+            background: var(--warning);
+            color: white;
+            display: none;
+        }
+
+        .btn-stop {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-step-fwd {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-step-bwd {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-loop {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-loop.active {
+            background: var(--primary);
+            box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-export {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Speed Control */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .speed-control input[type="range"] {
+            width: 80px;
+            padding: 0;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .speed-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        .speed-label {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 35px;
+            text-align: center;
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-container {
+            flex: 1;
+            position: relative;
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        .progress-thumb {
+            position: absolute;
+            top: -5px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+            left: 0%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            transition: left 0.05s linear;
+            display: none;
+        }
+
+        .progress-thumb.active {
+            display: block;
+        }
+
+        .time-label {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--accent);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        /* Status Badge */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge.idle {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .badge.playing {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge.paused {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.loaded {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Toggle */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            margin-right: 15px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--text-light);
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(16px);
+        }
+
+        /* --- GRAPHS --- */
+        .graphs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .graph-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .graph-title {
+            margin: 0 0 5px 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        canvas {
+            width: 100%;
+            height: 150px;
+        }
+
+        /* No data overlay */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 300px;
+            color: var(--text-light);
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 10px 0;
+            color: var(--text-main);
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 0.9rem;
+            max-width: 400px;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .app-header {
+                padding: 8px 12px;
+                gap: 10px;
+                height: auto;
+                min-height: 56px;
+            }
+            .institute-name {
+                font-size: 0.75rem;
+            }
+            .app-name {
+                font-size: 0.65rem;
+            }
+            .logo-container {
+                height: 32px;
+                width: 32px;
+            }
+            .layout-container {
+                grid-template-columns: 1fr;
+                padding: 12px;
+                height: auto;
+                overflow: visible;
+            }
+            .sidebar {
+                max-height: 50vh;
+            }
+            .control-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .control-group-left,
+            .control-group-right {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            button {
+                font-size: 0.75rem;
+                padding: 6px 10px;
+            }
+            canvas {
+                height: 120px;
+            }
+            .progress-section {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .speed-control input[type="range"] {
+                width: 60px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .institute-name {
+                font-size: 0.65rem;
+            }
+            .app-name {
+                font-size: 0.6rem;
+            }
+            .app-header {
+                padding: 6px 10px;
+                gap: 8px;
+            }
+            .logo-container {
+                height: 28px;
+                width: 28px;
+            }
+            .layout-container {
+                padding: 8px;
+                gap: 10px;
+            }
+            .sidebar {
+                padding: 12px;
+            }
+            .control-group-left,
+            .control-group-right {
+                gap: 6px;
+            }
+            .toggle-container {
+                margin-right: 0;
+            }
+            .time-label {
+                min-width: 80px;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="app-header">
+        <a href="landing.html" style="display:flex;align-items:center;gap:20px;text-decoration:none;color:inherit;">
+            <div class="logo-container">
+                <img src="vnit.jpg" alt="Logo" class="institute-logo"
+                    onerror="this.src='https://placehold.co/100x100?text=LOGO'">
+            </div>
+            <div class="header-titles">
+                <h1 class="institute-name">Visvesvaraya National Institute of Technology, Nagpur</h1>
+                <h2 class="app-name">Patient Monitor System — Replay Mode</h2>
+            </div>
+        </a>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+            <button id="themeToggle" onclick="toggleTheme()" style="background:none;border:1px solid var(--border);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:1.1rem;color:var(--text-light);" title="Toggle dark mode">🌙</button>
+        </div>
+    </header>
+
+    <div class="layout-container">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar">
+            <h3 class="form-header">📂 Load Recording</h3>
+
+            <!-- File Upload -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drop JSON file here or click to browse</div>
+                <div class="upload-hint">Supports .json files recorded from Patient Monitor System</div>
+                <input type="file" id="fileInput" accept=".json">
+            </div>
+
+            <!-- File Info -->
+            <div class="file-info" id="fileInfo">
+                <div>
+                    <div class="file-name" id="fileName">—</div>
+                    <div class="file-size" id="fileSize">—</div>
+                </div>
+                <button class="btn-clear" onclick="clearFile()">✕ Clear</button>
+            </div>
+
+            <!-- Metadata Section -->
+            <div class="meta-section" id="metaSection">
+                <h3 class="form-header">📋 Patient Info</h3>
+
+                <div class="meta-card">
+                    <div class="meta-row">
+                        <span class="meta-label">Patient Name</span>
+                        <span class="meta-value" id="metaPatientName">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Doctor Name</span>
+                        <span class="meta-value" id="metaDoctorName">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Date</span>
+                        <span class="meta-value" id="metaDate">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Age</span>
+                        <span class="meta-value" id="metaAge">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Sex</span>
+                        <span class="meta-value" id="metaSex">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Duration</span>
+                        <span class="meta-value" id="metaDuration">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Data Points</span>
+                        <span class="meta-value" id="metaPoints">—</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="meta-label">Saved At</span>
+                        <span class="meta-value" id="metaSavedAt">—</span>
+                    </div>
+                </div>
+
+                <div style="display:none;" id="symptomsGroup">
+                    <div class="meta-card">
+                        <div class="meta-row">
+                            <span class="meta-label">Symptoms</span>
+                            <span class="meta-value" id="metaSymptoms">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:none;" id="notesGroup">
+                    <div class="meta-card">
+                        <div class="meta-row">
+                            <span class="meta-label">Observation Notes</span>
+                            <span class="meta-value" id="metaNotes">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- PLAYBACK CONTROL BAR -->
+            <div class="control-bar">
+                <div class="control-row">
+                    <div class="control-group-left">
+                        <button id="btnPlay" class="btn-play" onclick="togglePlayback()" disabled>
+                            <span>▶</span> Play
+                        </button>
+                        <button id="btnPause" class="btn-pause" onclick="togglePlayback()" disabled>
+                            <span>⏸</span> Pause
+                        </button>
+                        <button id="btnStop" class="btn-stop" onclick="stopPlayback()" disabled>
+                            <span>⏹</span> Stop
+                        </button>
+                        <button id="btnSkipBwd5" class="btn-step-bwd" onclick="skipBackward5()" disabled title="-5s">
+                            <span>⏪5s</span>
+                        </button>
+                        <button id="btnStepBwd" class="btn-step-bwd" onclick="stepBackward()" disabled title="Step Backward">
+                            <span>⏪</span>
+                        </button>
+                        <button id="btnStepFwd" class="btn-step-fwd" onclick="stepForward()" disabled title="Step Forward">
+                            <span>⏩</span>
+                        </button>
+                        <button id="btnSkipFwd5" class="btn-step-fwd" onclick="skipForward5()" disabled title="+5s">
+                            <span>5s⏩</span>
+                        </button>
+                        <button id="btnLoop" class="btn-loop" onclick="toggleLoop()" title="Loop Playback">
+                            <span>🔁</span> Loop
+                        </button>
+                        <span id="statusBadge" class="badge idle">⏹ IDLE</span>
+                    </div>
+                    <div class="control-group-right">
+                        <div class="toggle-container">
+                            <span>Raw</span>
+                            <label class="switch">
+                                <input type="checkbox" id="viewToggle" onchange="toggleViewMode()" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Processed</span>
+                        </div>
+                        <div class="speed-control">
+                            <span>Speed</span>
+                            <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1.0" oninput="updateSpeed()">
+                            <span class="speed-label" id="speedLabel">1.0×</span>
+                        </div>
+                        <button id="btnExport" class="btn-export" onclick="exportChartImage()" disabled title="Export chart as image">
+                            <span>📷</span> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="progress-section">
+                    <span class="time-label" id="timeDisplay">00:00.0 / 00:00.0</span>
+                    <div class="progress-container" id="progressContainer" onclick="seekProgress(event)">
+                        <div class="progress-bar" id="progressBar"></div>
+                        <div class="progress-thumb" id="progressThumb"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRAPHS CONTAINER -->
+            <div class="graphs-container" id="graphsContainer">
+                <div class="graph-card">
+                    <div class="graph-title"><span>Sensor 1: Accel X</span><span style="color: var(--primary);">■</span></div>
+                    <div style="height: 162px;"><canvas id="chart1"></canvas></div>
+                </div>
+                <div class="graph-card">
+                    <div class="graph-title"><span>Sensor 2: Accel Y</span><span style="color: var(--success);">■</span></div>
+                    <div style="height: 162px;"><canvas id="chart2"></canvas></div>
+                </div>
+                <div class="graph-card">
+                    <div class="graph-title"><span>Sensor 3: Accel Z</span><span style="color: var(--error);">■</span></div>
+                    <div style="height: 162px;"><canvas id="chart3"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Empty State (shown when no file loaded) -->
+            <div class="empty-state" id="emptyState">
+                <div class="icon">📊</div>
+                <h3>No Recording Loaded</h3>
+                <p>Upload a JSON recording file from the Patient Monitor System to visualize and replay the data.</p>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // ==================== GLOBALS ====================
+        let recordedData = [];
+        let metadata = null;
+        let currentFrame = 0;
+        let isPlaying = false;
+        let isLooping = false;
+        let playbackInterval = null;
+        let playbackSpeed = 1.0;
+        let isProcessedView = true;
+        let isFileLoaded = false;
+
+        // Baseline buffers for "Processed" mode (same logic as index.html)
+        let windowBuffer = [[], [], []];
+
+        // Chart reference
+        let charts = [];
+        const MAX_POINTS = 250; // fallback max
+        const WINDOW_SECONDS = 5; // Show exactly 5 seconds of data in the chart viewport
+        const chartColors = ['#2563eb', '#16a34a', '#dc2626'];
+
+        // ==================== THEME TOGGLE ====================
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            const btn = document.getElementById('themeToggle');
+            if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
+            localStorage.setItem('theme', next);
+        }
+
+        // Apply saved theme preference immediately before rendering
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            setupFileUpload();
+            updateUIState('idle');
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark') {
+                const btn = document.getElementById('themeToggle');
+                if (btn) btn.textContent = '☀️';
+            }
+        });
+
+        // ==================== CHART SETUP ====================
+        function initCharts() {
+            const canvasIds = ['chart1', 'chart2', 'chart3'];
+            charts = canvasIds.map((id, i) => createChart(id, chartColors[i]));
+        }
+
+        function createChart(canvasId, color) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        borderColor: color,
+                        borderWidth: 2,
+                        data: [],
+                        pointRadius: 0,
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: { display: true, text: 'Time (s)' },
+                            ticks: { maxTicksLimit: 10 }
+                        },
+                        y: { grace: '10%' }
+                    }
+                }
+            });
+        }
+
+        // ==================== FILE UPLOAD ====================
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            // Click to upload
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.json')) {
+                alert('Please select a valid JSON file recorded from the Patient Monitor System.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    validateAndLoad(data, file);
+                } catch (err) {
+                    alert('Failed to parse JSON file. Please ensure it is a valid recording file.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function validateAndLoad(data, file) {
+            // Validate structure
+            if (!data.metadata || !data.data || !Array.isArray(data.data)) {
+                alert('Invalid recording format: Missing "metadata" or "data" array.');
+                return;
+            }
+
+            if (data.data.length === 0) {
+                alert('Recording file contains no data points.');
+                return;
+            }
+
+            // Validate data points have required fields
+            const sample = data.data[0];
+            if (!sample.hasOwnProperty('rawValues') && !sample.hasOwnProperty('calibratedValues')) {
+                alert('Invalid data point format: Each point must have "rawValues" or "calibratedValues".');
+                return;
+            }
+
+            // Load the data
+            recordedData = data.data;
+            metadata = data.metadata;
+
+            // Update file info
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').classList.add('active');
+
+            // Populate metadata
+            populateMetadata(metadata);
+
+            // Show graphs, hide empty state
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('graphsContainer').style.display = 'flex';
+
+            // Enable controls
+            isFileLoaded = true;
+            updateUIState('loaded');
+
+            // Reset playback
+            currentFrame = 0;
+            windowBuffer = [[], [], []];
+
+// Disable play/pause initially, user needs to click Play
+            document.getElementById('btnPlay').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('btnStepFwd').disabled = false;
+            document.getElementById('btnStepBwd').disabled = true;
+            document.getElementById('btnSkipFwd5').disabled = false;
+            document.getElementById('btnSkipBwd5').disabled = true;
+
+            // Show first frame
+            renderFrame(0);
+        }
+
+        function populateMetadata(meta) {
+            if (!meta) return;
+
+            setMeta('metaPatientName', meta.patientName || '—');
+            setMeta('metaDoctorName', meta.doctorName || '—');
+            setMeta('metaDate', meta.DOB || meta.date || '—');
+            setMeta('metaAge', meta.age || '—');
+            setMeta('metaSex', meta.sex || '—');
+            setMeta('metaDuration', meta.recordingDuration || formatDuration(recordedData.length > 0 ? recordedData[recordedData.length - 1].relativeTime : 0));
+            setMeta('metaPoints', recordedData.length.toLocaleString());
+            setMeta('metaSavedAt', meta.savedAt ? new Date(meta.savedAt).toLocaleString() : '—');
+
+            // Show symptoms if available
+            if (meta.symptoms && Array.isArray(meta.symptoms) && meta.symptoms.length > 0) {
+                const symptomsGroup = document.getElementById('symptomsGroup');
+                symptomsGroup.style.display = 'block';
+                document.getElementById('metaSymptoms').textContent = meta.symptoms.join(', ');
+            }
+
+            // Show notes if available
+            if (meta.notes) {
+                const notesGroup = document.getElementById('notesGroup');
+                notesGroup.style.display = 'block';
+                document.getElementById('metaNotes').textContent = meta.notes;
+            }
+
+            document.getElementById('metaSection').classList.add('active');
+        }
+
+        function setMeta(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        // ==================== PLAYBACK CONTROLS ====================
+        function togglePlayback() {
+            if (isPlaying) {
+                pausePlayback();
+            } else {
+                startPlayback();
+            }
+        }
+
+function startPlayback() {
+            if (!isFileLoaded || recordedData.length === 0) return;
+
+            // If we're at the end, restart
+            if (currentFrame >= recordedData.length - 1) {
+                currentFrame = 0;
+                windowBuffer = [[], [], []];
+            }
+
+            isPlaying = true;
+            updateUIState('playing');
+
+            document.getElementById('btnPlay').style.display = 'none';
+            document.getElementById('btnPause').style.display = 'block';
+            document.getElementById('btnStop').disabled = false;
+            document.getElementById('btnStepFwd').disabled = true;
+            document.getElementById('btnStepBwd').disabled = true;
+            document.getElementById('btnSkipFwd5').disabled = false;
+            document.getElementById('btnSkipBwd5').disabled = false;
+
+            scheduleNextFrame();
+        }
+
+        function scheduleNextFrame() {
+            if (!isPlaying) return;
+
+            // Get the time delta between current frame and next frame
+            let delay = 50; // default fallback
+
+            if (currentFrame + 1 < recordedData.length) {
+                const currentTime = recordedData[currentFrame].relativeTime;
+                const nextTime = recordedData[currentFrame + 1].relativeTime;
+                const delta = (nextTime - currentTime) * 1000; // convert to ms
+                delay = Math.max(16, Math.min(5000, delta / playbackSpeed));
+            }
+
+            playbackInterval = setTimeout(() => {
+                if (!isPlaying) return;
+
+                if (currentFrame >= recordedData.length - 1) {
+                    // End of recording
+                    pausePlayback();
+
+                    if (isLooping) {
+                        currentFrame = 0;
+                        windowBuffer = [[], [], []];
+                        startPlayback();
+                    } else {
+                        updateUIState('loaded');
+                        document.getElementById('btnPlay').style.display = 'block';
+                        document.getElementById('btnPause').style.display = 'none';
+                        document.getElementById('btnStepFwd').disabled = true;
+                        document.getElementById('btnStepBwd').disabled = false;
+                        document.getElementById('btnSkipFwd5').disabled = true;
+                        document.getElementById('btnSkipBwd5').disabled = false;
+                    }
+                    return;
+                }
+
+                currentFrame++;
+                renderFrame(currentFrame);
+                scheduleNextFrame();
+            }, delay);
+        }
+
+        function pausePlayback() {
+            isPlaying = false;
+            clearInterval(playbackInterval);
+            playbackInterval = null;
+
+            updateUIState('paused');
+
+            document.getElementById('btnPlay').style.display = 'block';
+            document.getElementById('btnPause').style.display = 'none';
+            document.getElementById('btnStepFwd').disabled = false;
+            document.getElementById('btnStepBwd').disabled = currentFrame <= 0;
+        }
+
+function stopPlayback() {
+            isPlaying = false;
+            clearInterval(playbackInterval);
+            playbackInterval = null;
+
+            // Don't clear windowBuffer — keep last frame's data visible
+            // Don't reset currentFrame to 0 — keep showing the last displayed frame
+
+            updateUIState('loaded');
+            document.getElementById('btnPlay').style.display = 'block';
+            document.getElementById('btnPause').style.display = 'none';
+            document.getElementById('btnPlay').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('btnStepFwd').disabled = false;
+            document.getElementById('btnStepBwd').disabled = false;
+            document.getElementById('btnSkipFwd5').disabled = false;
+            document.getElementById('btnSkipBwd5').disabled = false;
+
+            // Keep showing the current chart — no re-render needed
+        }
+
+        function stepForward() {
+            if (!isFileLoaded || recordedData.length === 0) return;
+            if (currentFrame < recordedData.length - 1) {
+                currentFrame++;
+                renderFrame(currentFrame);
+                document.getElementById('btnStepBwd').disabled = false;
+                if (currentFrame >= recordedData.length - 1) {
+                    document.getElementById('btnStepFwd').disabled = true;
+                }
+            }
+        }
+
+        function stepBackward() {
+            if (!isFileLoaded || recordedData.length === 0) return;
+            if (currentFrame > 0) {
+                // When stepping backward, we need to rebuild the window buffer
+                // Reset and replay up to currentFrame-1
+                currentFrame--;
+                rebuildBufferUpTo(currentFrame);
+                renderFrame(currentFrame);
+                document.getElementById('btnStepFwd').disabled = false;
+                if (currentFrame <= 0) {
+                    document.getElementById('btnStepBwd').disabled = true;
+                }
+            }
+        }
+
+function rebuildBufferUpTo(frameIndex) {
+            windowBuffer = [[], [], []];
+            for (let i = 0; i < frameIndex && i < recordedData.length; i++) {
+                const point = recordedData[i];
+                const values = point.calibratedValues || point.rawValues || [0, 0, 0];
+                values.forEach((v, idx) => {
+                    windowBuffer[idx].push(v);
+                });
+            }
+        }
+
+        function toggleLoop() {
+            isLooping = !isLooping;
+            document.getElementById('btnLoop').classList.toggle('active', isLooping);
+        }
+
+        function updateSpeed() {
+            const slider = document.getElementById('speedSlider');
+            playbackSpeed = parseFloat(slider.value);
+            document.getElementById('speedLabel').textContent = playbackSpeed.toFixed(1) + '×';
+
+            // If currently playing, restart with new speed using the timeout-based approach
+            if (isPlaying) {
+                clearTimeout(playbackInterval);
+                playbackInterval = null;
+                scheduleNextFrame();
+            }
+        }
+
+        function skipForward5() {
+            if (!isFileLoaded || recordedData.length === 0) return;
+            const currentTime = recordedData[currentFrame].relativeTime;
+            const targetTime = currentTime + 5;
+            // Find the frame at or just beyond targetTime
+            let targetFrame = currentFrame;
+            for (let i = currentFrame; i < recordedData.length; i++) {
+                if (recordedData[i].relativeTime >= targetTime) {
+                    targetFrame = i;
+                    break;
+                }
+                targetFrame = i; // if we never exceed, go to last
+            }
+            if (targetFrame !== currentFrame) {
+                currentFrame = targetFrame;
+                rebuildBufferUpTo(currentFrame);
+                renderFrame(currentFrame);
+            }
+            document.getElementById('btnStepBwd').disabled = currentFrame <= 0;
+            document.getElementById('btnStepFwd').disabled = currentFrame >= recordedData.length - 1;
+            document.getElementById('btnSkipFwd5').disabled = currentFrame >= recordedData.length - 1;
+            document.getElementById('btnSkipBwd5').disabled = currentFrame <= 0;
+        }
+
+        function skipBackward5() {
+            if (!isFileLoaded || recordedData.length === 0) return;
+            const currentTime = recordedData[currentFrame].relativeTime;
+            const targetTime = Math.max(0, currentTime - 5);
+            // Find the frame at or just before targetTime
+            let targetFrame = 0;
+            for (let i = currentFrame; i >= 0; i--) {
+                if (recordedData[i].relativeTime <= targetTime) {
+                    targetFrame = i;
+                    break;
+                }
+                // if we go past the start, use frame 0
+                if (i === 0) targetFrame = 0;
+            }
+            if (targetFrame !== currentFrame) {
+                currentFrame = targetFrame;
+                rebuildBufferUpTo(currentFrame);
+                renderFrame(currentFrame);
+            }
+            document.getElementById('btnStepBwd').disabled = currentFrame <= 0;
+            document.getElementById('btnStepFwd').disabled = currentFrame >= recordedData.length - 1;
+            document.getElementById('btnSkipFwd5').disabled = currentFrame >= recordedData.length - 1;
+            document.getElementById('btnSkipBwd5').disabled = currentFrame <= 0;
+        }
+
+        function seekProgress(event) {
+            if (!isFileLoaded || recordedData.length === 0) return;
+
+            const container = document.getElementById('progressContainer');
+            const rect = container.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const ratio = Math.max(0, Math.min(1, x / rect.width));
+            const targetFrame = Math.round(ratio * (recordedData.length - 1));
+
+            if (targetFrame !== currentFrame) {
+                currentFrame = targetFrame;
+                rebuildBufferUpTo(currentFrame);
+                renderFrame(currentFrame);
+                document.getElementById('btnStepBwd').disabled = currentFrame <= 0;
+                document.getElementById('btnStepFwd').disabled = currentFrame >= recordedData.length - 1;
+            }
+        }
+
+        // ==================== RENDER (5-second sliding window) ====================
+        function getWindowStartTime() {
+            if (!recordedData || recordedData.length === 0 || currentFrame >= recordedData.length) return 0;
+            const currentTime = recordedData[currentFrame].relativeTime;
+            return Math.max(0, currentTime - WINDOW_SECONDS);
+        }
+
+        function renderFrame(frameIndex) {
+            if (!isFileLoaded || recordedData.length === 0 || frameIndex < 0 || frameIndex >= recordedData.length) return;
+
+            const point = recordedData[frameIndex];
+            const calibratedValues = point.calibratedValues || point.rawValues || [0, 0, 0];
+
+            // Update window buffer for processed mode (keep up to current frame)
+            calibratedValues.forEach((v, i) => {
+                windowBuffer[i].push(v);
+                // No MAX_POINTS limit on buffer — it holds ALL data up to current frame
+                // for proper processed/baseline calculation
+            });
+
+            // Determine time window: last WINDOW_SECONDS from current frame's time
+            const currentTime = point.relativeTime;
+            const windowStart = Math.max(0, currentTime - WINDOW_SECONDS);
+
+            // Find the first index that falls within our window
+            let startIndex = 0;
+            for (let j = currentFrame; j >= 0; j--) {
+                if (recordedData[j].relativeTime <= windowStart) {
+                    startIndex = j;
+                    break;
+                }
+            }
+
+            // Update charts with data only within the 5-second window
+            charts.forEach((chart, i) => {
+                chart.data.labels.length = 0;
+                chart.data.datasets[0].data.length = 0;
+
+                for (let j = startIndex; j <= currentFrame; j++) {
+                    const p = recordedData[j];
+                    const calVals = p.calibratedValues || p.rawValues || [0, 0, 0];
+                    let plotVal = calVals[i];
+
+                    if (isProcessedView) {
+                        // Use buffer up to current frame for baseline (not window-limited)
+                        const bufSlice = windowBuffer[i].slice(0, j + 1);
+                        if (bufSlice.length > 1) {
+                            const baseline = calculateMean(bufSlice);
+                            plotVal = calVals[i] - baseline;
+                        }
+                    }
+
+                    chart.data.labels.push(p.relativeTime.toFixed(2));
+                    chart.data.datasets[0].data.push(plotVal);
+                }
+
+                chart.update('none');
+            });
+
+            // Update progress & time
+            updateProgress(frameIndex);
+        }
+
+        function calculateMean(dataArray) {
+            const n = dataArray.length;
+            if (n === 0) return 0;
+            return dataArray.reduce((a, b) => a + b, 0) / n;
+        }
+
+        // ==================== UI UPDATES ====================
+        function updateUIState(state) {
+            const badge = document.getElementById('statusBadge');
+
+            switch (state) {
+                case 'idle':
+                    badge.className = 'badge idle';
+                    badge.textContent = '⏹ IDLE';
+                    break;
+                case 'loaded':
+                    badge.className = 'badge loaded';
+                    badge.textContent = '📁 LOADED';
+                    break;
+                case 'playing':
+                    badge.className = 'badge playing';
+                    badge.textContent = '▶ PLAYING';
+                    break;
+                case 'paused':
+                    badge.className = 'badge paused';
+                    badge.textContent = '⏸ PAUSED';
+                    break;
+            }
+        }
+
+        function updateProgress(frameIndex) {
+            if (!recordedData || recordedData.length === 0) return;
+
+            const totalFrames = recordedData.length;
+            const progress = (frameIndex / (totalFrames - 1)) * 100;
+
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressThumb').style.left = progress + '%';
+
+            // Time display
+            const currentTime = recordedData[frameIndex] ? recordedData[frameIndex].relativeTime : 0;
+            const totalTime = recordedData[totalFrames - 1] ? recordedData[totalFrames - 1].relativeTime : 0;
+
+            document.getElementById('timeDisplay').textContent =
+                formatTime(currentTime) + ' / ' + formatTime(totalTime);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const tenths = Math.floor((seconds % 1) * 10);
+            return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + tenths;
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function toggleViewMode() {
+            isProcessedView = document.getElementById('viewToggle').checked;
+            if (isFileLoaded) {
+                // Re-render current frame
+                renderFrame(currentFrame);
+            }
+        }
+
+        // ==================== MISC ====================
+        function clearFile() {
+            // Stop playback if playing
+            if (isPlaying) {
+                clearInterval(playbackInterval);
+                playbackInterval = null;
+                isPlaying = false;
+            }
+
+            recordedData = [];
+            metadata = null;
+            currentFrame = 0;
+            isFileLoaded = false;
+            windowBuffer = [[], [], []];
+
+            // Reset UI
+            document.getElementById('fileInfo').classList.remove('active');
+            document.getElementById('metaSection').classList.remove('active');
+            document.getElementById('symptomsGroup').style.display = 'none';
+            document.getElementById('notesGroup').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('graphsContainer').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+
+            // Clear charts
+            charts.forEach(chart => {
+                chart.data.labels.length = 0;
+                chart.data.datasets[0].data.length = 0;
+                chart.update('none');
+            });
+
+            // Reset controls
+            updateUIState('idle');
+            document.getElementById('btnPlay').style.display = 'block';
+            document.getElementById('btnPause').style.display = 'none';
+            document.getElementById('btnPlay').disabled = true;
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('btnStepFwd').disabled = true;
+            document.getElementById('btnStepBwd').disabled = true;
+            document.getElementById('timeDisplay').textContent = '00:00.0 / 00:00.0';
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressThumb').style.left = '0%';
+
+        }
+
+function exportChartImage() {
+            // Export the entire graphs area as an image
+            const container = document.querySelector('.graphs-container');
+            if (!container) return;
+
+            // Use html2canvas if available, otherwise fallback to simple screenshot
+            if (typeof html2canvas !== 'undefined') {
+                html2canvas(container).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'replay_chart_export.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            } else {
+                // Fallback: capture each chart canvas and combine
+                alert('For chart export, include html2canvas library or use browser screenshot.');
+            }
+        }
+    </script>
+
+</body>
+</html>
+
