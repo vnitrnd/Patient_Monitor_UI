@@ -545,11 +545,21 @@
             border-radius: 4px;
             border: 1px solid var(--border);
             cursor: pointer;
+            transition: height 0.2s ease;
+        }
+
+        .progress-container:hover {
+            height: 14px;
+        }
+
+        .progress-container:hover .progress-thumb,
+        .progress-container.dragging .progress-thumb {
+            opacity: 1;
         }
 
         .progress-bar {
             height: 100%;
-            background: var(--primary);
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
             border-radius: 4px;
             width: 0%;
             transition: width 0.05s linear;
@@ -563,16 +573,22 @@
             border-radius: 50%;
             background: var(--primary);
             border: 2px solid white;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
             left: 0%;
             transform: translateX(-50%);
-            cursor: pointer;
-            transition: left 0.05s linear;
-            display: none;
+            cursor: grab;
+            transition: opacity 0.2s ease, left 0.05s linear;
+            opacity: 0;
+            display: block;
+            z-index: 2;
+        }
+
+        .progress-thumb:active {
+            cursor: grabbing;
         }
 
         .progress-thumb.active {
-            display: block;
+            opacity: 1;
         }
 
         .time-label {
@@ -975,7 +991,7 @@
                 </div>
                 <div class="progress-section">
                     <span class="time-label" id="timeDisplay">00:00.0 / 00:00.0</span>
-                    <div class="progress-container" id="progressContainer" onclick="seekProgress(event)">
+                    <div class="progress-container" id="progressContainer">
                         <div class="progress-bar" id="progressBar"></div>
                         <div class="progress-thumb" id="progressThumb"></div>
                     </div>
@@ -985,15 +1001,15 @@
             <!-- GRAPHS CONTAINER -->
             <div class="graphs-container" id="graphsContainer">
                 <div class="graph-card">
-                    <div class="graph-title"><span>Sensor 1: Accel X</span><span style="color: var(--primary);">■</span></div>
+<div class="graph-title"><span>Vata</span><span style="color: var(--primary);">■</span></div>
                     <div style="height: 162px;"><canvas id="chart1"></canvas></div>
                 </div>
                 <div class="graph-card">
-                    <div class="graph-title"><span>Sensor 2: Accel Y</span><span style="color: var(--success);">■</span></div>
+<div class="graph-title"><span>Pitta</span><span style="color: var(--success);">■</span></div>
                     <div style="height: 162px;"><canvas id="chart2"></canvas></div>
                 </div>
                 <div class="graph-card">
-                    <div class="graph-title"><span>Sensor 3: Accel Z</span><span style="color: var(--error);">■</span></div>
+<div class="graph-title"><span>Kapha</span><span style="color: var(--error);">■</span></div>
                     <div style="height: 162px;"><canvas id="chart3"></canvas></div>
                 </div>
             </div>
@@ -1052,6 +1068,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initCharts();
             setupFileUpload();
+            initDragSeek();
             updateUIState('idle');
             const saved = localStorage.getItem('theme');
             if (saved === 'dark') {
@@ -1193,16 +1210,41 @@
             currentFrame = 0;
             windowBuffer = [[], [], []];
 
+            // Find the first 5-second window: all data points from firstPointTime to (firstPointTime + WINDOW_SECONDS)
+            const firstPointTime = recordedData[0].relativeTime;
+            const windowEndTime = firstPointTime + WINDOW_SECONDS;
+            let firstWindowEndIndex = 0;
+            for (let i = 0; i < recordedData.length; i++) {
+                if (recordedData[i].relativeTime <= windowEndTime) {
+                    firstWindowEndIndex = i;
+                } else {
+                    break;
+                }
+            }
+
+            // Pre-fill windowBuffer with all points EXCEPT the last one in the first 5-second window
+            // (renderFrame below will push the last frame's values into the buffer)
+            for (let i = 0; i < firstWindowEndIndex && i < recordedData.length; i++) {
+                const pt = recordedData[i];
+                const vals = pt.calibratedValues || pt.rawValues || [0, 0, 0];
+                vals.forEach((v, idx) => {
+                    windowBuffer[idx].push(v);
+                });
+            }
+
+            // Set currentFrame to the last point in the first window
+            currentFrame = firstWindowEndIndex;
+
 // Disable play/pause initially, user needs to click Play
             document.getElementById('btnPlay').disabled = false;
             document.getElementById('btnStop').disabled = true;
             document.getElementById('btnStepFwd').disabled = false;
-            document.getElementById('btnStepBwd').disabled = true;
+            document.getElementById('btnStepBwd').disabled = false;
             document.getElementById('btnSkipFwd5').disabled = false;
-            document.getElementById('btnSkipBwd5').disabled = true;
+            document.getElementById('btnSkipBwd5').disabled = false;
 
-            // Show first frame
-            renderFrame(0);
+            // Show the full first 5-second window immediately
+            renderFrame(currentFrame);
         }
 
         function populateMetadata(meta) {
@@ -1458,6 +1500,54 @@ function rebuildBufferUpTo(frameIndex) {
             const container = document.getElementById('progressContainer');
             const rect = container.getBoundingClientRect();
             const x = event.clientX - rect.left;
+            const ratio = Math.max(0, Math.min(1, x / rect.width));
+            const targetFrame = Math.round(ratio * (recordedData.length - 1));
+
+            if (targetFrame !== currentFrame) {
+                currentFrame = targetFrame;
+                rebuildBufferUpTo(currentFrame);
+                renderFrame(currentFrame);
+                document.getElementById('btnStepBwd').disabled = currentFrame <= 0;
+                document.getElementById('btnStepFwd').disabled = currentFrame >= recordedData.length - 1;
+            }
+        }
+
+        // ==================== DRAG SEEK (YouTube-style) ====================
+        let isDragging = false;
+
+        function initDragSeek() {
+            const container = document.getElementById('progressContainer');
+            const thumb = document.getElementById('progressThumb');
+
+            // Mouse down on container or thumb starts drag
+            container.addEventListener('mousedown', (e) => {
+                if (!isFileLoaded || recordedData.length === 0) return;
+                isDragging = true;
+                container.classList.add('dragging');
+                seekByClientX(e.clientX);
+                e.preventDefault();
+            });
+
+            // Mouse move on document handles dragging
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                seekByClientX(e.clientX);
+            });
+
+            // Mouse up on document ends drag
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    const container = document.getElementById('progressContainer');
+                    container.classList.remove('dragging');
+                }
+            });
+        }
+
+        function seekByClientX(clientX) {
+            const container = document.getElementById('progressContainer');
+            const rect = container.getBoundingClientRect();
+            const x = clientX - rect.left;
             const ratio = Math.max(0, Math.min(1, x / rect.width));
             const targetFrame = Math.round(ratio * (recordedData.length - 1));
 
